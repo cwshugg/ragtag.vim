@@ -1215,45 +1215,69 @@ function! ragtag#commands#task_create_submit() abort
         let l:id_match = matchstr(l:result, 'id="\zs[^"]*\ze"')
         let l:task_id = empty(l:id_match) ? '(unknown)' : l:id_match
 
-        " Mark this scratch buffer as unmodified so wiping it succeeds even
-        " though :w was the trigger, then wipe it (bufhidden=wipe handles
-        " this on window close, but we are explicit to be safe).
+        " Mark this scratch buffer as unmodified so the :q half of :wq
+        " closes it cleanly without E37. With bufhidden=wipe the buffer is
+        " automatically wiped when its window closes.
         setlocal nomodified
         let l:create_bufnr = bufnr('%')
 
-        " Return to the source window if it still exists. If not, we cannot
-        " insert the tag, but we still printed the result.
-        let l:returned = 0
-        if win_id2win(l:src_winid) > 0
-            call win_gotoid(l:src_winid)
-            let l:returned = 1
-        endif
+        " DO NOT wipe the buffer here — let the :q portion of :wq close
+        " the window, which triggers bufhidden=wipe. If we wipe now, :q
+        " lands on the source buffer and raises E37/E162.
 
-        " Now wipe the create buffer. Do this after switching windows so the
-        " window that held it is closed automatically by Vim (since
-        " bufhidden=wipe).
-        if bufexists(l:create_bufnr)
-            execute 'bwipeout! ' . l:create_bufnr
-        endif
+        " Stash context needed by the post-close handler. We use a
+        " script-local dict so the BufWipeout autocmd can pick it up after
+        " the buffer is gone.
+        let s:create_pending = {
+            \ 'result': l:result,
+            \ 'task_id': l:task_id,
+            \ 'src_winid': l:src_winid,
+            \ 'src_bufnr': l:src_bufnr,
+            \ 'src_line': l:src_line,
+            \ 'src_col': l:src_col,
+        \ }
 
-        if l:returned && bufnr('%') == l:src_bufnr
-            " Insert the tag text at the exact cursor position (as if the
-            " user typed it in insert mode). We splice the tag into the
-            " existing line content at the saved column.
-            let l:cur_line = getline(l:src_line)
-            let l:before = strpart(l:cur_line, 0, l:src_col - 1)
-            let l:after = strpart(l:cur_line, l:src_col - 1)
-            call setline(l:src_line, l:before . l:result . l:after)
-        endif
-
-        " Mark the source buffer as modified so Vim knows it needs saving,
-        " then suppress the E37/E162 error by marking it as written.
-        if l:returned
-            set modified
-        endif
-
-        call ragtag#utils#print('Task ' . l:task_id . ' created successfully.')
+        " Install a one-shot BufWipeout autocmd that fires when the create
+        " buffer is actually closed (by :q or bufhidden=wipe). This is
+        " where we insert the tag and print the confirmation.
+        augroup ragtag_create_post
+            autocmd! * <buffer>
+            autocmd BufWipeout <buffer> call s:create_post_wipe()
+        augroup END
     catch
         call ragtag#utils#print_error(v:exception)
     endtry
+endfunction
+
+
+" Post-wipe handler: called when the create buffer is actually wiped (by
+" :q after BufWriteCmd marked it nomodified, or by bufhidden=wipe). Inserts
+" the tag at the original cursor position and prints confirmation.
+function! s:create_post_wipe() abort
+    " Clean up the autogroup.
+    augroup ragtag_create_post
+        autocmd!
+    augroup END
+
+    if !exists('s:create_pending')
+        return
+    endif
+    let l:ctx = s:create_pending
+    unlet s:create_pending
+
+    " Return to the source window and insert the tag.
+    let l:returned = 0
+    if win_id2win(l:ctx.src_winid) > 0
+        call win_gotoid(l:ctx.src_winid)
+        let l:returned = 1
+    endif
+
+    if l:returned && bufnr('%') == l:ctx.src_bufnr
+        let l:cur_line = getline(l:ctx.src_line)
+        let l:before = strpart(l:cur_line, 0, l:ctx.src_col - 1)
+        let l:after = strpart(l:cur_line, l:ctx.src_col - 1)
+        call setline(l:ctx.src_line, l:before . l:ctx.result . l:after)
+    endif
+
+    call ragtag#utils#print('Task ' . l:ctx.task_id . ' created successfully.')
 endfunction

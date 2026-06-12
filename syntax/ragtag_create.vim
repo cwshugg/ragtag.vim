@@ -17,7 +17,6 @@ syntax match RagtagCreateComment /^\s*#.*$/
 syntax match RagtagCreateLabel /^\k\+\(\s\+\k\+\)*:/
 
 highlight default link RagtagCreateComment Comment
-" RagtagCreateLabel is defined in autoload/ragtag/highlight.vim so users can
-" override it consistently with other ragtag highlight groups.
+highlight default link RagtagCreateLabel Constant
 
 let b:current_syntax = 'ragtag_create'

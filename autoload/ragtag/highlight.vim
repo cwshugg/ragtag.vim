@@ -37,7 +37,7 @@ function! ragtag#highlight#define() abort
     highlight default link RagtagListPriority4 DiffAdd
 
     " Interactive create-task buffer highlights.
-    highlight default link RagtagCreateLabel Comment
+    highlight default link RagtagCreateLabel Constant
     highlight default link RagtagCreateComment Comment
 
     " Task summary buffer highlights.
