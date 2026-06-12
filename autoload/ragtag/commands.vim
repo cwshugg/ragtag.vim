@@ -767,6 +767,10 @@ function! ragtag#commands#query(input) abort
         call matchadd('RagtagAttrEquals', '\w\zs=\ze[^=]', -1)
         call matchadd('RagtagAttrValue', '=\zs[^,)]*\ze', -1)
 
+        " Jump to the first match so the user starts on a tag.
+        normal! gg
+        silent! execute 'normal! n'
+
         call ragtag#utils#print('Found ' . l:match_count . ' tag(s).')
     catch
         call ragtag#utils#print_error(v:exception)
