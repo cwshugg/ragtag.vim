@@ -37,5 +37,5 @@ function! ragtag#highlight#define() abort
     highlight default link RagtagListPriority4 DiffAdd
 endfunction
 
-" Define groups on load.
+" Define groups on load (also called on ColorScheme from plugin/ragtag.vim).
 call ragtag#highlight#define()

@@ -28,8 +28,9 @@ function! ragtag#buffer#open() abort
         return
     endif
 
-    " Create a new scratch buffer.
-    execute 'enew'
+    " Create a new scratch buffer in a bottom split so we don't clobber the
+    " user's current (possibly unsaved) buffer.
+    execute 'botright new'
     execute 'file ' . s:buffer_name
 
     " Set buffer options for a scratch buffer.
@@ -50,10 +51,13 @@ endfunction
 "
 " a:tasks       - list of task dicts from `ragtag#utils#parse_raw_tasks()`
 " a:source_path - the --path that was used (stored for refresh)
-function! ragtag#buffer#render(tasks, source_path) abort
-    " Store task data and source path as buffer-local variables.
+" a:cli_args    - the full CLI argument list passed to exec() (stored for
+"                 refresh so --filter, --sort, and --all are preserved)
+function! ragtag#buffer#render(tasks, source_path, cli_args) abort
+    " Store task data, source path, and full CLI args as buffer-local vars.
     let b:ragtag_tasks = a:tasks
     let b:ragtag_source_path = a:source_path
+    let b:ragtag_cli_args = a:cli_args
 
     " Make the buffer temporarily modifiable to write content.
     setlocal modifiable
@@ -324,20 +328,20 @@ endfunction
 " ========================= Refresh ========================================== "
 
 " Refreshes the task list by re-running the CLI command with the same
-" arguments used on the last render.
+" arguments used on the last render (including --filter, --sort, --all).
 function! ragtag#buffer#refresh() abort
-    if !exists('b:ragtag_source_path')
-        call ragtag#utils#print_error('No source path stored for refresh.')
+    if !exists('b:ragtag_cli_args')
+        call ragtag#utils#print_error('No CLI args stored for refresh.')
         return
     endif
 
-    let l:source_path = b:ragtag_source_path
+    let l:cli_args = b:ragtag_cli_args
+    let l:source_path = get(b:, 'ragtag_source_path', '')
 
     try
-        let l:output = ragtag#utils#exec(['task', 'list', '--format', 'raw',
-            \ '--path', l:source_path])
+        let l:output = ragtag#utils#exec(l:cli_args)
         let l:tasks = ragtag#utils#parse_raw_tasks(l:output)
-        call ragtag#buffer#render(l:tasks, l:source_path)
+        call ragtag#buffer#render(l:tasks, l:source_path, l:cli_args)
     catch
         call ragtag#utils#print_error(v:exception)
     endtry

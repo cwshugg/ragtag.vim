@@ -28,7 +28,7 @@ let s:arg_path_argid = argonaut#argid#new('--', 'path')
 call argonaut#argid#set_show_in_autocomplete(s:arg_path_argid, 1)
 call argonaut#arg#add_argid(s:arg_path, s:arg_path_argid)
 call argonaut#arg#set_description(s:arg_path,
-    \ 'File or directory to search.'
+    \ 'Target file or directory.'
 \ )
 call argonaut#arg#set_value_required(s:arg_path, 1)
 call argonaut#arg#set_value_hint(s:arg_path, 'PATH')
@@ -462,7 +462,7 @@ function! ragtag#commands#task_list(input) abort
 
         " Open the task list buffer and render the tasks.
         call ragtag#buffer#open()
-        call ragtag#buffer#render(l:tasks, l:path)
+        call ragtag#buffer#render(l:tasks, l:path, l:args)
     catch
         call ragtag#utils#print_error(v:exception)
     endtry
@@ -724,14 +724,20 @@ endfunction
 " a:input      - raw argument string from the Vim command
 " a:subcommand - CLI subcommand name (e.g., 'complete', 'activate')
 " a:verb       - past-tense verb for the confirmation message (e.g., 'Completed')
+" a:state      - adjective/state word for the --help description (e.g., 'done')
 " a:argset     - argset object to use for parsing
-function! s:run_status_command(input, subcommand, verb, argset) abort
+function! s:run_status_command(input, subcommand, verb, state, argset) abort
     let l:parser = argonaut#argparser#new(a:argset)
     try
         call argonaut#argparser#parse(l:parser, a:input)
         if argonaut#argparser#has_arg(l:parser, '--help')
-            call ragtag#utils#print('RagtagTask' . a:verb .
-                \ ': Mark task as ' . tolower(a:verb) . '.')
+            " Derive the present-tense command name from the subcommand
+            " (e.g. 'complete' → 'RagtagTaskComplete').
+            let l:cmd_name = 'RagtagTask' .
+                \ toupper(strpart(a:subcommand, 0, 1)) .
+                \ strpart(a:subcommand, 1)
+            call ragtag#utils#print(l:cmd_name .
+                \ ': Mark task as ' . a:state . '.')
             call argonaut#argparser#show_help(l:parser)
             return
         endif
@@ -776,7 +782,7 @@ endfunction
 " Marks a task as done. The task can be identified by explicit --id or by
 " placing the cursor on a @task(...) tag in the current buffer.
 function! ragtag#commands#task_complete(input) abort
-    call s:run_status_command(a:input, 'complete', 'Completed',
+    call s:run_status_command(a:input, 'complete', 'Completed', 'done',
         \ s:task_status_argset)
 endfunction
 
@@ -785,7 +791,7 @@ endfunction
 " Sets a task's status to active. The task can be identified by explicit --id
 " or by cursor detection.
 function! ragtag#commands#task_activate(input) abort
-    call s:run_status_command(a:input, 'activate', 'Activated',
+    call s:run_status_command(a:input, 'activate', 'Activated', 'active',
         \ s:task_status_argset)
 endfunction
 
@@ -794,7 +800,7 @@ endfunction
 " Sets a task's status to inactive. The task can be identified by explicit
 " --id or by cursor detection.
 function! ragtag#commands#task_deactivate(input) abort
-    call s:run_status_command(a:input, 'deactivate', 'Deactivated',
+    call s:run_status_command(a:input, 'deactivate', 'Deactivated', 'inactive',
         \ s:task_status_argset)
 endfunction
 
@@ -803,7 +809,7 @@ endfunction
 " Sets a task's status to blocked. The task can be identified by explicit --id
 " or by cursor detection.
 function! ragtag#commands#task_block(input) abort
-    call s:run_status_command(a:input, 'block', 'Blocked',
+    call s:run_status_command(a:input, 'block', 'Blocked', 'blocked',
         \ s:task_status_argset)
 endfunction
 
@@ -812,7 +818,7 @@ endfunction
 " Sets a task's status to abandoned. The task can be identified by explicit
 " --id or by cursor detection.
 function! ragtag#commands#task_abandon(input) abort
-    call s:run_status_command(a:input, 'abandon', 'Abandoned',
+    call s:run_status_command(a:input, 'abandon', 'Abandoned', 'abandoned',
         \ s:task_status_argset)
 endfunction
 
@@ -962,8 +968,13 @@ function! ragtag#commands#task_create(input) abort
         let l:output = ragtag#utils#exec(l:args)
         let l:result = substitute(l:output, '\n$', '', '')
 
-        " Insert the tag after the current cursor line.
-        call append(line('.'), l:result)
+        " Preserve the current line's indentation when inserting.
+        " Split on newlines so multi-line output is handled correctly:
+        " each line gets the same indent applied before being appended.
+        let l:indent = matchstr(getline('.'), '^\s*')
+        let l:lines = split(l:result, "\n", 1)
+        call map(l:lines, 'l:indent . v:val')
+        call append(line('.'), l:lines)
 
         call ragtag#utils#print('Created task: ' . l:result)
     catch

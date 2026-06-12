@@ -47,7 +47,25 @@ function! ragtag#tag#find_tag_at_cursor() abort
         let l:search_end = l:idx - 1
     endwhile
 
-    " If not found on current line, scan previous lines for an unclosed
+    " If not found on current line via backward scan, also try scanning
+    " forward on the current line (handles the case where the cursor is
+    " positioned before the '@' character on the same line).
+    if l:at_line < 0
+        let l:fwd_idx = l:cur_col  " one past cursor (0-based)
+        while l:fwd_idx < len(l:line_text)
+            if l:line_text[l:fwd_idx] ==# '@'
+                let l:after = strpart(l:line_text, l:fwd_idx + 1, 1)
+                if l:after =~# '\w'
+                    let l:at_line = l:cur_line
+                    let l:at_col = l:fwd_idx + 1  " 1-based column
+                    break
+                endif
+            endif
+            let l:fwd_idx += 1
+        endwhile
+    endif
+
+    " If still not found on current line, scan previous lines for an unclosed
     " '@tagname(' pattern (up to 20 lines back).
     if l:at_line < 0
         let l:max_back = 20

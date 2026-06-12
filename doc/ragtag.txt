@@ -58,6 +58,11 @@ arguments.
     Display all tasks in a custom interactive buffer with inline editing
     capabilities. Tasks are rendered in a formatted table.
 
+    The task list remembers the path it was opened with. Pressing `r` to
+    refresh re-runs the CLI query against that same stored path and does not
+    re-resolve it from the current buffer. To query a different path, re-run
+    the command explicitly: `:Rtl --path <new_path>`.
+
     Arguments:
         --path, -p PATH     File or directory to search (default: current file)
         --filter, -f EXPR   Filter expression (e.g., status=active)
@@ -257,6 +262,28 @@ arguments.
         :RagtagTaskCreate --title "Fix login bug" --owner alice --priority 1
         :Rtcr -T "Refactor auth" -S active -P 2
 <
+
+------------------------------------------------------------------------------
+Command Abbreviations                                   *ragtag-abbreviations*
+
+All commands have a short alias for faster typing:
+
+    Abbreviation    Full Command              Mnemonic~
+    Rtl             RagtagTaskList            [R]ag[t]ag [l]ist
+    Rtsa            RagtagTaskSetAttr         [R]ag[t]ag [s]et [a]ttr
+    Rtga            RagtagTaskGetAttr         [R]ag[t]ag [g]et [a]ttr
+    Rs              RagtagSummary             [R]ag [s]ummary
+    Rq              RagtagQuery               [R]ag [q]uery
+    Rtco            RagtagTaskComplete        [R]ag[t]ask [co]mplete
+    Rta             RagtagTaskActivate        [R]ag[t]ask [a]ctivate
+    Rtd             RagtagTaskDeactivate      [R]ag[t]ask [d]eactivate
+    Rtb             RagtagTaskBlock           [R]ag[t]ask [b]lock
+    Rtab            RagtagTaskAbandon         [R]ag[t]ask [ab]andon
+    Rtp             RagtagTaskPrioritize      [R]ag[t]ask [p]rioritize
+    Rtcr            RagtagTaskCreate          [R]ag[t]ask [cr]eate
+
+Tip: Type `:Rt<Tab>` (or `:R<Tab>`) for command completion to browse all
+available ragtag commands without memorizing every abbreviation.
 
 ==============================================================================
 4. CONFIGURATION                                              *ragtag-config*

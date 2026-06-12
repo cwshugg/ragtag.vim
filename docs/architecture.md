@@ -362,10 +362,11 @@ priority=1
 description=Design the REST API
 file=/path/to/file.md
 line=42
-time_spent=
-ttc_estimate=8
-ttc_actual=
-time_units=hours
+worktime_spent=
+worktime_estimate=8
+worktime_units=hours
+time_created=2024-01-15T09:00:00Z
+time_last_updated=2024-01-20T14:30:00Z
 pid=
 ```
 
@@ -642,7 +643,7 @@ A machine-readable format is needed.
 
 * Add a `--format` flag to the `task list` subcommand accepting values: `default`, `raw`
 * When `--format raw` is specified, output one key=value pair per line, with a blank line separating tasks
-* Keys correspond to `TaskTag` fields: `id`, `title`, `owner`, `status`, `priority`, `description`, `file`, `line`, `time_spent`, `ttc_estimate`, `ttc_actual`, `time_units`, `pid`
+* Keys correspond to `TaskTag` fields: `id`, `title`, `owner`, `status`, `priority`, `description`, `file`, `line`, `worktime_spent`, `worktime_estimate`, `worktime_units`, `time_created`, `time_last_updated`, `pid`
 * Empty/None values produce an empty value (e.g., `description=`)
 * No quoting of values — values are raw strings
 * No color codes regardless of `--color` setting
@@ -658,10 +659,11 @@ priority=1
 description=Design the REST API
 file=/path/to/file.md
 line=42
-time_spent=
-ttc_estimate=8
-ttc_actual=
-time_units=hours
+worktime_spent=
+worktime_estimate=8
+worktime_units=hours
+time_created=2024-01-15T09:00:00Z
+time_last_updated=2024-01-20T14:30:00Z
 pid=
 
 id=fedcba0987654321
@@ -672,10 +674,11 @@ priority=3
 description=
 file=/path/to/notes.md
 line=15
-time_spent=
-ttc_estimate=4
-ttc_actual=
-time_units=hours
+worktime_spent=
+worktime_estimate=4
+worktime_units=hours
+time_created=2024-01-18T11:00:00Z
+time_last_updated=2024-01-18T11:00:00Z
 pid=
 ```
 

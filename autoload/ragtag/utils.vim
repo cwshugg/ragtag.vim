@@ -18,10 +18,11 @@ function! ragtag#utils#print_error(msg) abort
     echohl None
 endfunction
 
-" Throws a prefixed exception. Used within try/catch flows to propagate
-" errors up to the command handler.
+" Throws a raw (un-prefixed) exception. Used within try/catch flows to
+" propagate errors up to the command handler, which prints the message via
+" print_error() (which adds the prefix itself).
 function! ragtag#utils#panic(msg) abort
-    throw ragtag#config#get('print_prefix') . a:msg
+    throw a:msg
 endfunction
 
 
@@ -65,7 +66,13 @@ endfunction
 " ============================== Path Helpers ================================ "
 
 " Returns the resolved --path value from the argument parser. The resolution
-" order is: explicit --path argument > g:ragtag_default_path > current file.
+" order is:
+"   1. Explicit --path argument
+"   2. g:ragtag_default_path
+"   3. b:ragtag_source_path (when inside the task-list scratch buffer)
+"   4. expand('%:p') — but only for ordinary file buffers (empty &buftype),
+"      which excludes ragtag://, fugitive://, netrw, quickfix, etc.
+"   5. getcwd() as a final fallback
 function! ragtag#utils#resolve_path(parser) abort
     if argonaut#argparser#has_arg(a:parser, '--path')
         let l:values = argonaut#argparser#get_arg(a:parser, '--path')
@@ -77,7 +84,15 @@ function! ragtag#utils#resolve_path(parser) abort
     if !empty(l:default)
         return l:default
     endif
-    return expand('%:p')
+    " Prefer the stored source path when inside the task-list buffer.
+    if exists('b:ragtag_source_path') && !empty(b:ragtag_source_path)
+        return b:ragtag_source_path
+    endif
+    let l:current = expand('%:p')
+    if !empty(l:current) && empty(&buftype)
+        return l:current
+    endif
+    return getcwd()
 endfunction
 
 

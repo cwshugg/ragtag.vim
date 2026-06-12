@@ -31,6 +31,16 @@ if !executable(s:binary)
     echohl None
 endif
 
+" ========================== Highlight Setup ================================= "
+" Install the ColorScheme autocmd at plugin-load time so highlight groups
+" survive colorscheme changes even before any ragtag command has been invoked.
+" The actual highlight definitions live in autoload/ragtag/highlight.vim and
+" are called lazily via ragtag#highlight#define().
+augroup ragtag_highlight
+    autocmd!
+    autocmd ColorScheme * call ragtag#highlight#define()
+augroup END
+
 " ============================== Command Definitions ========================= "
 
 " RagtagTaskList - Displays an interactive task list buffer with inline
