@@ -934,9 +934,9 @@ let s:create_buffer_name = 'ragtag://create-task'
 let s:create_fields = [
     \ ['Title',             '--title',             ''],
     \ ['Description',       '--description',       ''],
-    \ ['Owner',             '--owner',             'me'],
-    \ ['Status',            '--status',            'new'],
     \ ['Priority',          '--priority',          ''],
+    \ ['Status',            '--status',            'new'],
+    \ ['Owner',             '--owner',             'me'],
     \ ['Worktime Estimate', '--worktime-estimate', ''],
     \ ['Worktime Spent',    '--worktime-spent',    '0'],
     \ ['Worktime Units',    '--worktime-units',    'hours'],
