@@ -133,6 +133,13 @@ command!
     \ RagtagTaskPrioritize
     \ call ragtag#commands#task_prioritize(<q-args>)
 
+" RagtagTaskTime - Sets a task's worktime_spent value.
+command!
+    \ -nargs=*
+    \ -complete=customlist,ragtag#commands#task_time_complete
+    \ RagtagTaskTime
+    \ call ragtag#commands#task_time(<q-args>)
+
 " RagtagTaskCreate - Creates a new task via CLI args and inserts the
 " resulting @task(...) tag at the cursor position.
 command!

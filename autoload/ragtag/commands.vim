@@ -329,6 +329,14 @@ let s:task_prioritize_argset = argonaut#argset#new([
     \ s:arg_priority,
 \ ])
 
+" Argset for :RagtagTaskTime — id, worktime-spent, path, and help.
+let s:task_time_argset = argonaut#argset#new([
+    \ s:arg_help,
+    \ s:arg_path,
+    \ s:arg_id,
+    \ s:arg_worktime_spent,
+\ ])
+
 " Argset for :RagtagTaskCreate — title (required), plus all optional fields.
 let s:task_create_argset = argonaut#argset#new([
     \ s:arg_help,
@@ -418,6 +426,12 @@ endfunction
 function! ragtag#commands#task_prioritize_complete(arg, line, pos)
     return argonaut#completion#complete(a:arg, a:line, a:pos,
         \ s:task_prioritize_argset)
+endfunction
+
+" Tab completion function for :RagtagTaskTime.
+function! ragtag#commands#task_time_complete(arg, line, pos)
+    return argonaut#completion#complete(a:arg, a:line, a:pos,
+        \ s:task_time_argset)
 endfunction
 
 " Tab completion function for :RagtagTaskCreate.
@@ -946,9 +960,61 @@ function! ragtag#commands#task_prioritize(input) abort
 endfunction
 
 
+" ---- RagtagTaskTime -------------------------------------------------------- "
+" Sets a task's worktime_spent attribute. Mirrors the structure of
+" `task_prioritize` but targets worktime_spent instead of priority.
+function! ragtag#commands#task_time(input) abort
+    let l:parser = argonaut#argparser#new(s:task_time_argset)
+    try
+        call argonaut#argparser#parse(l:parser, a:input)
+        if argonaut#argparser#has_arg(l:parser, '--help')
+            call ragtag#utils#print('RagtagTaskTime: Set a task worktime_spent value.')
+            call argonaut#argparser#show_help(l:parser)
+            return
+        endif
 
+        " Resolve the target path.
+        let l:path = ragtag#utils#resolve_path(l:parser)
 
-" ---- RagtagTaskCreate ------------------------------------------------------ "
+        " Get the worktime_spent value (required).
+        if !argonaut#argparser#has_arg(l:parser, '--worktime-spent')
+            call ragtag#utils#panic('--worktime-spent is required. Specify the new worktime value.')
+        endif
+        let l:wt_values = argonaut#argparser#get_arg(l:parser, '--worktime-spent')
+        let l:worktime = l:wt_values[0]
+
+        " Determine the task ID: explicit --id or cursor detection.
+        let l:id = ''
+        let l:location = {}
+        if argonaut#argparser#has_arg(l:parser, '--id')
+            let l:id_values = argonaut#argparser#get_arg(l:parser, '--id')
+            if len(l:id_values) > 0
+                let l:id = l:id_values[0]
+            endif
+        endif
+        if empty(l:id)
+            let l:location = ragtag#tag#find_tag_at_cursor()
+            let l:id = l:location.id
+            if empty(l:id)
+                call ragtag#utils#panic('No task ID found at cursor. Use --id to specify explicitly.')
+            endif
+        endif
+
+        " Call the CLI. Note: CLI takes worktime_spent BEFORE ID.
+        let l:output = ragtag#utils#exec(['task', 'time', l:worktime,
+            \ l:id, '--no-edit', '--path', l:path])
+
+        " If we detected the tag from the cursor, replace it in the buffer.
+        if !empty(l:location)
+            call ragtag#tag#replace_tag_in_buffer(l:location, l:output)
+        endif
+
+        call ragtag#utils#print('Updated task ' . strpart(l:id, 0, 8) .
+            \ ' (worktime_spent → ' . l:worktime . ')')
+    catch
+        call ragtag#utils#print_error(v:exception)
+    endtry
+endfunction
 
 " Name of the scratch buffer used for interactive task creation.
 let s:create_buffer_name = 'ragtag://create-task'
