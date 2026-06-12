@@ -440,7 +440,7 @@ function! ragtag#commands#task_list(input) abort
         let l:path = ragtag#utils#resolve_path(l:parser)
 
         " Build CLI arguments.
-        let l:args = ['task', 'list', '--format', 'raw', '--path', l:path]
+        let l:args = ['task', 'list', '--format', 'raw', '--all', '--path', l:path]
 
         " Append optional filter argument.
         if argonaut#argparser#has_arg(l:parser, '--filter')
@@ -643,7 +643,7 @@ function! ragtag#commands#task_summary(input) abort
 
         " Fetch raw task data (same source as RagtagTaskList).
         let l:output = ragtag#utils#exec(
-            \ ['task', 'list', '--format', 'raw', '--path', l:path])
+            \ ['task', 'list', '--format', 'raw', '--all', '--path', l:path])
         let l:tasks = ragtag#utils#parse_raw_tasks(l:output)
 
         " Remember the source window so we can return there for jumps.
