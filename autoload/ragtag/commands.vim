@@ -364,6 +364,13 @@ function! ragtag#commands#summary_complete(arg, line, pos)
         \ s:summary_argset)
 endfunction
 
+" Tab completion function for :RagtagTaskSummary. Reuses the summary argset
+" since both take only --path and --help.
+function! ragtag#commands#task_summary_complete(arg, line, pos)
+    return argonaut#completion#complete(a:arg, a:line, a:pos,
+        \ s:summary_argset)
+endfunction
+
 " Tab completion function for :RagtagQuery.
 function! ragtag#commands#query_complete(arg, line, pos)
     return argonaut#completion#complete(a:arg, a:line, a:pos,
@@ -586,8 +593,8 @@ endfunction
 
 
 " ---- RagtagSummary --------------------------------------------------------- "
-" Displays a summary of tags found in the current file or directory by
-" invoking `ragtag task summary`.
+" Displays a summary of all tags found in the current file or directory by
+" invoking `ragtag summary`.
 function! ragtag#commands#summary(input) abort
     let l:parser = argonaut#argparser#new(s:summary_argset)
     try
@@ -602,12 +609,44 @@ function! ragtag#commands#summary(input) abort
         let l:path = ragtag#utils#resolve_path(l:parser)
 
         " Call the CLI for a summary.
-        let l:output = ragtag#utils#exec(['task', 'summary', '--path', l:path])
+        let l:output = ragtag#utils#exec(['summary', '--path', l:path])
 
         " Display the output.
         let l:result = substitute(l:output, '\n$', '', '')
         if empty(l:result)
             call ragtag#utils#print('No tags found.')
+        else
+            echo l:result
+        endif
+    catch
+        call ragtag#utils#print_error(v:exception)
+    endtry
+endfunction
+
+
+" ---- RagtagTaskSummary ----------------------------------------------------- "
+" Displays a summary of tasks found in the current file or directory by
+" invoking `ragtag task summary`.
+function! ragtag#commands#task_summary(input) abort
+    let l:parser = argonaut#argparser#new(s:summary_argset)
+    try
+        call argonaut#argparser#parse(l:parser, a:input)
+        if argonaut#argparser#has_arg(l:parser, '--help')
+            call ragtag#utils#print('RagtagTaskSummary: Display task summary.')
+            call argonaut#argparser#show_help(l:parser)
+            return
+        endif
+
+        " Resolve the target path.
+        let l:path = ragtag#utils#resolve_path(l:parser)
+
+        " Call the CLI for a task summary.
+        let l:output = ragtag#utils#exec(['task', 'summary', '--path', l:path])
+
+        " Display the output.
+        let l:result = substitute(l:output, '\n$', '', '')
+        if empty(l:result)
+            call ragtag#utils#print('No tasks found.')
         else
             echo l:result
         endif
@@ -692,6 +731,11 @@ function! ragtag#commands#query(input) abort
         " Enable search highlighting so the user can navigate with n/N.
         set hlsearch
 
+        " Ensure highlight groups are defined BEFORE matchadd() calls so
+        " that the highlight group names exist (otherwise matchadd() raises
+        " E28: No such highlight group name).
+        call ragtag#highlight#define()
+
         " Apply finer-grained highlight groups via matchadd() for tag
         " components in the current window.
         call clearmatches()
@@ -702,9 +746,6 @@ function! ragtag#commands#query(input) abort
         call matchadd('RagtagAttrName', '(\zs\w\+\ze=\|,\s*\zs\w\+\ze=')
         call matchadd('RagtagAttrEquals', '\w\zs=\ze[^=]')
         call matchadd('RagtagAttrValue', '=\zs[^,)]*\ze')
-
-        " Ensure highlight groups are defined.
-        call ragtag#highlight#define()
 
         call ragtag#utils#print('Found ' . l:match_count .
             \ ' tag(s). Use n/N to navigate.')
@@ -880,101 +921,221 @@ function! ragtag#commands#task_prioritize(input) abort
 endfunction
 
 
+
+
 " ---- RagtagTaskCreate ------------------------------------------------------ "
-" Creates a new task via CLI arguments (non-interactive) using --format oneline
-" and inserts the resulting @task(...) tag after the current cursor line.
+
+" Name of the scratch buffer used for interactive task creation.
+let s:create_buffer_name = 'ragtag://create-task'
+
+" Ordered list of field labels presented in the create-task buffer. The
+" submit handler iterates this list to extract values from the buffer and to
+" map each label to its CLI flag.
+let s:create_fields = [
+    \ ['Title',             '--title',             ''],
+    \ ['Description',       '--description',       ''],
+    \ ['Owner',             '--owner',             'me'],
+    \ ['Status',            '--status',            'new'],
+    \ ['Priority',          '--priority',          ''],
+    \ ['Worktime Estimate', '--worktime-estimate', ''],
+    \ ['Worktime Spent',    '--worktime-spent',    '0'],
+    \ ['Worktime Units',    '--worktime-units',    'hours'],
+    \ ['Parent ID',         '--pid',               ''],
+\ ]
+
+" Opens an interactive scratch buffer for creating a new task. Parses CLI
+" arguments (mostly --path) to determine where the task will be created. The
+" buffer is pre-populated with labelled fields; on :w/:wq the buffer is
+" parsed, the CLI is invoked, and the resulting @task(...) tag is inserted
+" at the original cursor position.
 function! ragtag#commands#task_create(input) abort
     let l:parser = argonaut#argparser#new(s:task_create_argset)
     try
         call argonaut#argparser#parse(l:parser, a:input)
         if argonaut#argparser#has_arg(l:parser, '--help')
-            call ragtag#utils#print('RagtagTaskCreate: Create a new task.')
+            call ragtag#utils#print('RagtagTaskCreate: Create a new task interactively.')
             call argonaut#argparser#show_help(l:parser)
             return
         endif
 
-        " Resolve the target path.
+        " Resolve the target path so the CLI invocation later uses the same
+        " --path the user implied with this command.
         let l:path = ragtag#utils#resolve_path(l:parser)
 
-        " Get the title (required).
-        if !argonaut#argparser#has_arg(l:parser, '--title')
-            call ragtag#utils#panic('--title is required. Specify the task title.')
-        endif
-        let l:title_values = argonaut#argparser#get_arg(l:parser, '--title')
-        let l:title = l:title_values[0]
+        " Capture the source context BEFORE opening the scratch buffer so we
+        " can return to the originating window/buffer/cursor on submit.
+        let l:src_winid = win_getid()
+        let l:src_bufnr = bufnr('%')
+        let l:src_line = line('.')
+        let l:src_col = col('.')
+        let l:src_indent = matchstr(getline('.'), '^\s*')
 
-        " Build the CLI command.
+        " If a buffer with the create-task name already exists, wipe it so
+        " we always start with a fresh form.
+        let l:existing = bufnr(s:create_buffer_name)
+        if l:existing != -1 && bufexists(l:existing)
+            execute 'bwipeout! ' . l:existing
+        endif
+
+        " Open a fresh scratch buffer in a bottom split (mirrors task list
+        " behavior) and assign the well-known buffer name.
+        execute 'botright new'
+        execute 'file ' . s:create_buffer_name
+
+        " Buffer options: acwrite so :w fires BufWriteCmd; wipe on close so
+        " :q! discards cleanly; not listed; no swapfile.
+        setlocal buftype=acwrite
+        setlocal bufhidden=wipe
+        setlocal noswapfile
+        setlocal nobuflisted
+        setlocal filetype=ragtag_create
+
+        " Stash the source context as buffer-local variables so the
+        " BufWriteCmd handler can find them.
+        let b:ragtag_src_winid = l:src_winid
+        let b:ragtag_src_bufnr = l:src_bufnr
+        let b:ragtag_src_line = l:src_line
+        let b:ragtag_src_col = l:src_col
+        let b:ragtag_src_indent = l:src_indent
+        let b:ragtag_path = l:path
+
+        " Build the form contents: a short comment header followed by one
+        " line per field. Each field line has the form "Label: <default>".
+        let l:lines = [
+            \ '# New Task',
+            \ '# Lines starting with # are ignored.',
+            \ '# Save and close (:wq) to create the task.',
+            \ '# Quit without saving (:q!) to cancel.',
+            \ '',
+        \ ]
+        for l:field in s:create_fields
+            call add(l:lines, l:field[0] . ': ' . l:field[2])
+        endfor
+
+        " Replace buffer contents with the form, then mark unmodified so an
+        " immediate :q won't prompt about unsaved changes.
+        call setline(1, l:lines)
+        setlocal nomodified
+
+        " Install the submit handler. BufWriteCmd is buffer-local because of
+        " the <buffer> pattern.
+        augroup ragtag_create_buffer
+            autocmd! * <buffer>
+            autocmd BufWriteCmd <buffer> call ragtag#commands#task_create_submit()
+        augroup END
+
+        " Position the cursor on the Title value so the user can start
+        " typing immediately. Title is the 6th line (after 4 comment lines
+        " and the blank separator).
+        call cursor(6, len('Title: ') + 1)
+    catch
+        call ragtag#utils#print_error(v:exception)
+    endtry
+endfunction
+
+
+" Handles :w / :wq inside the create-task scratch buffer. Parses each
+" non-comment line for a "Label: value" pair, builds the CLI command, runs
+" it, closes the scratch buffer, and inserts the resulting @task(...) tag
+" at the originally captured cursor position.
+function! ragtag#commands#task_create_submit() abort
+    try
+        " Collect source context from buffer-local variables. If any are
+        " missing the buffer is in an unexpected state — bail out.
+        if !exists('b:ragtag_path')
+            call ragtag#utils#panic('Create-task buffer is missing context.')
+        endif
+        let l:src_winid = b:ragtag_src_winid
+        let l:src_bufnr = b:ragtag_src_bufnr
+        let l:src_line = b:ragtag_src_line
+        let l:src_indent = b:ragtag_src_indent
+        let l:path = b:ragtag_path
+
+        " Parse the buffer line by line, ignoring blanks and comments. For
+        " each field label we know about, record the user-supplied value.
+        let l:values = {}
+        for l:label_info in s:create_fields
+            let l:values[l:label_info[0]] = ''
+        endfor
+
+        let l:line_count = line('$')
+        let l:idx = 1
+        while l:idx <= l:line_count
+            let l:line = getline(l:idx)
+            let l:idx += 1
+            if l:line =~# '^\s*$' || l:line =~# '^\s*#'
+                continue
+            endif
+            " Match "Label: value" — Label may contain spaces (e.g.
+            " "Worktime Estimate"). Use a non-greedy capture before the
+            " first ": ".
+            let l:m = matchlist(l:line, '^\([^:]\+\):\s*\(.*\)$')
+            if empty(l:m)
+                continue
+            endif
+            let l:label = substitute(l:m[1], '^\s\+\|\s\+$', '', 'g')
+            let l:value = substitute(l:m[2], '\s\+$', '', '')
+            if has_key(l:values, l:label)
+                let l:values[l:label] = l:value
+            endif
+        endwhile
+
+        " Title is required.
+        if empty(l:values['Title'])
+            call ragtag#utils#panic('Title is required.')
+        endif
+
+        " Build the CLI argument list. Title always goes in; other fields
+        " are included only when non-empty. Note: `ragtag task create` does
+        " not accept --path; the user-supplied --path is preserved on the
+        " buffer for context but not forwarded to the CLI.
         let l:args = ['task', 'create', '--format', 'oneline',
-            \ '--title', l:title, '--path', l:path]
-
-        " Append optional arguments if provided.
-        if argonaut#argparser#has_arg(l:parser, '--description')
-            let l:vals = argonaut#argparser#get_arg(l:parser, '--description')
-            if len(l:vals) > 0
-                let l:args += ['--description', l:vals[0]]
+            \ '--title', l:values['Title']]
+        for l:field in s:create_fields
+            let l:label = l:field[0]
+            let l:flag = l:field[1]
+            if l:label ==# 'Title'
+                continue
             endif
-        endif
-
-        if argonaut#argparser#has_arg(l:parser, '--owner')
-            let l:vals = argonaut#argparser#get_arg(l:parser, '--owner')
-            if len(l:vals) > 0
-                let l:args += ['--owner', l:vals[0]]
+            let l:val = l:values[l:label]
+            if !empty(l:val)
+                let l:args += [l:flag, l:val]
             endif
-        endif
+        endfor
 
-        if argonaut#argparser#has_arg(l:parser, '--status')
-            let l:vals = argonaut#argparser#get_arg(l:parser, '--status')
-            if len(l:vals) > 0
-                let l:args += ['--status', l:vals[0]]
-            endif
-        endif
-
-        if argonaut#argparser#has_arg(l:parser, '--priority')
-            let l:vals = argonaut#argparser#get_arg(l:parser, '--priority')
-            if len(l:vals) > 0
-                let l:args += ['--priority', l:vals[0]]
-            endif
-        endif
-
-        if argonaut#argparser#has_arg(l:parser, '--worktime-estimate')
-            let l:vals = argonaut#argparser#get_arg(l:parser, '--worktime-estimate')
-            if len(l:vals) > 0
-                let l:args += ['--worktime-estimate', l:vals[0]]
-            endif
-        endif
-
-        if argonaut#argparser#has_arg(l:parser, '--worktime-spent')
-            let l:vals = argonaut#argparser#get_arg(l:parser, '--worktime-spent')
-            if len(l:vals) > 0
-                let l:args += ['--worktime-spent', l:vals[0]]
-            endif
-        endif
-
-        if argonaut#argparser#has_arg(l:parser, '--worktime-units')
-            let l:vals = argonaut#argparser#get_arg(l:parser, '--worktime-units')
-            if len(l:vals) > 0
-                let l:args += ['--worktime-units', l:vals[0]]
-            endif
-        endif
-
-        if argonaut#argparser#has_arg(l:parser, '--pid')
-            let l:vals = argonaut#argparser#get_arg(l:parser, '--pid')
-            if len(l:vals) > 0
-                let l:args += ['--pid', l:vals[0]]
-            endif
-        endif
-
-        " Execute the CLI command and capture the @task(...) output.
+        " Run the CLI; capture the resulting tag string.
         let l:output = ragtag#utils#exec(l:args)
         let l:result = substitute(l:output, '\n$', '', '')
 
-        " Preserve the current line's indentation when inserting.
-        " Split on newlines so multi-line output is handled correctly:
-        " each line gets the same indent applied before being appended.
-        let l:indent = matchstr(getline('.'), '^\s*')
-        let l:lines = split(l:result, "\n", 1)
-        call map(l:lines, 'l:indent . v:val')
-        call append(line('.'), l:lines)
+        " Mark this scratch buffer as unmodified so wiping it succeeds even
+        " though :w was the trigger, then wipe it (bufhidden=wipe handles
+        " this on window close, but we are explicit to be safe).
+        setlocal nomodified
+        let l:create_bufnr = bufnr('%')
+
+        " Return to the source window if it still exists. If not, we cannot
+        " insert the tag, but we still printed the result.
+        let l:returned = 0
+        if win_id2win(l:src_winid) > 0
+            call win_gotoid(l:src_winid)
+            let l:returned = 1
+        endif
+
+        " Now wipe the create buffer. Do this after switching windows so the
+        " window that held it is closed automatically by Vim (since
+        " bufhidden=wipe).
+        if bufexists(l:create_bufnr)
+            execute 'bwipeout! ' . l:create_bufnr
+        endif
+
+        if l:returned && bufnr('%') == l:src_bufnr
+            " Insert the @task(...) tag (possibly multi-line) after the
+            " originally captured line, prefixing each new line with the
+            " same indentation. Mirrors the approach used by other commands.
+            let l:lines = split(l:result, "\n", 1)
+            call map(l:lines, 'l:src_indent . v:val')
+            call append(l:src_line, l:lines)
+        endif
 
         call ragtag#utils#print('Created task: ' . l:result)
     catch

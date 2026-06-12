@@ -113,7 +113,8 @@ arguments.
 
                                                            *:RagtagSummary*
 :RagtagSummary [args]                                                  *:Rs*
-    Display a summary of tags found in the current file or directory.
+    Display a summary of all tags (any tag name) found in the current file
+    or directory. Invokes `ragtag summary`.
 
     Arguments:
         --path, -p PATH     File or directory to summarize
@@ -123,6 +124,21 @@ arguments.
 >
         :RagtagSummary --path docs/
         :Rs
+<
+
+                                                         *:RagtagTaskSummary*
+:RagtagTaskSummary [args]                                             *:Rts*
+    Display a summary of `@task(...)` tags found in the current file or
+    directory. Invokes `ragtag task summary`.
+
+    Arguments:
+        --path, -p PATH     File or directory to summarize
+        --help, -h          Show help menu
+
+    Example:
+>
+        :RagtagTaskSummary --path src/
+        :Rts
 <
 
                                                              *:RagtagQuery*
@@ -239,28 +255,38 @@ arguments.
         :Rtp -P 2 --id abc123ef
 <
 
-                                                         *:RagtagTaskCreate*
+                                                          *:RagtagTaskCreate*
 :RagtagTaskCreate [args]                                              *:Rtcr*
-    Create a new task via CLI arguments (non-interactive). The resulting
-    `@task(...)` tag is inserted after the current cursor line.
+    Open an interactive scratch buffer for creating a new task. Each task
+    attribute is presented on its own line as `Label: value`. Edit the
+    values, then `:wq` (or `:w`) to create the task. Use `:q!` to cancel
+    without creating anything.
+
+    On submit, the resulting `@task(...)` tag is inserted after the line
+    your cursor was on when the command was invoked (preserving the
+    original indentation).
+
+    Field labels are highlighted distinctly from values. The submit handler
+    parses each non-comment line looking for `Label: value` pairs, so if
+    you accidentally corrupt a label that field is silently ignored. The
+    `Title` field is required; submitting an empty Title aborts creation.
 
     Arguments:
-        --title, -T TITLE           Task title (required)
-        --description, -D DESC      Task description
-        --owner, -O OWNER           Task owner
-        --status, -S STATUS         Initial status (e.g., active, inactive)
-        --priority, -P NUM          Initial priority value
-        --worktime-estimate, -E NUM Estimated work time
-        --worktime-spent, -W NUM    Work time already spent
-        --worktime-units, -U UNITS  Units for worktime values (e.g., hours)
-        --pid PID                   Parent task ID
-        --path, -p PATH             File or directory path
+        --path, -p PATH             File or directory path (used by the CLI
+                                    to locate config). Defaults to the
+                                    current buffer's file.
         --help, -h                  Show help menu
+
+    Defaults pre-populated in the form:
+        Owner:              me
+        Status:             new
+        Worktime Spent:     0
+        Worktime Units:     hours
 
     Example:
 >
-        :RagtagTaskCreate --title "Fix login bug" --owner alice --priority 1
-        :Rtcr -T "Refactor auth" -S active -P 2
+        :RagtagTaskCreate
+        :Rtcr --path src/
 <
 
 ------------------------------------------------------------------------------
@@ -273,6 +299,7 @@ All commands have a short alias for faster typing:
     Rtsa            RagtagTaskSetAttr         [R]ag[t]ag [s]et [a]ttr
     Rtga            RagtagTaskGetAttr         [R]ag[t]ag [g]et [a]ttr
     Rs              RagtagSummary             [R]ag [s]ummary
+    Rts             RagtagTaskSummary         [R]ag [t]ask [s]ummary
     Rq              RagtagQuery               [R]ag [q]uery
     Rtco            RagtagTaskComplete        [R]ag[t]ask [co]mplete
     Rta             RagtagTaskActivate        [R]ag[t]ask [a]ctivate
@@ -380,6 +407,12 @@ Task List Buffer Highlights (for |:RagtagTaskList|):~
     RagtagListPriority2         Todo              Priority 2 (medium-high)
     RagtagListPriority3         DiffChange        Priority 3 (medium)
     RagtagListPriority4         DiffAdd           Priority 4+ (low)
+
+Create-Task Buffer Highlights (for |:RagtagTaskCreate|):~
+
+    Group                       Default Link      Applied To~
+    RagtagCreateComment         Comment           Comment lines (# ...)
+    RagtagCreateLabel           Comment           Field labels (e.g., Title:)
 
 ==============================================================================
 vim:tw=78:ts=8:ft=help:norl:

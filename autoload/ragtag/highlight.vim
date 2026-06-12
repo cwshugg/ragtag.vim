@@ -35,6 +35,10 @@ function! ragtag#highlight#define() abort
     highlight default link RagtagListPriority2 Todo
     highlight default link RagtagListPriority3 DiffChange
     highlight default link RagtagListPriority4 DiffAdd
+
+    " Interactive create-task buffer highlights.
+    highlight default link RagtagCreateLabel Comment
+    highlight default link RagtagCreateComment Comment
 endfunction
 
 " Define groups on load (also called on ColorScheme from plugin/ragtag.vim).

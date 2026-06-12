@@ -82,8 +82,8 @@ command!
     \ Rtga
     \ call ragtag#commands#task_get_attr(<q-args>)
 
-" RagtagSummary - Displays a summary of tags found in the current file or
-" directory.
+" RagtagSummary - Displays a summary of all tags found in the current file or
+" directory (invokes `ragtag summary`).
 command!
     \ -nargs=*
     \ -complete=customlist,ragtag#commands#summary_complete
@@ -94,6 +94,19 @@ command!
     \ -complete=customlist,ragtag#commands#summary_complete
     \ Rs
     \ call ragtag#commands#summary(<q-args>)
+
+" RagtagTaskSummary - Displays a summary of tasks found in the current file
+" or directory (invokes `ragtag task summary`).
+command!
+    \ -nargs=*
+    \ -complete=customlist,ragtag#commands#task_summary_complete
+    \ RagtagTaskSummary
+    \ call ragtag#commands#task_summary(<q-args>)
+command!
+    \ -nargs=*
+    \ -complete=customlist,ragtag#commands#task_summary_complete
+    \ Rts
+    \ call ragtag#commands#task_summary(<q-args>)
 
 " RagtagQuery - Finds tags in the current buffer and sets up Vim search
 " highlighting for navigation with n/N.

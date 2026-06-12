@@ -78,8 +78,15 @@ command!
 | Command | Alias | Function | Description |
 |---------|-------|----------|-------------|
 | `RagtagTaskList` | `Rtl` | `ragtag#commands#task_list()` | Show interactive task list |
+| `RagtagTaskCreate` | `Rtcr` | `ragtag#commands#task_create()` | Create and insert a `@task(...)` tag |
 | `RagtagTaskSetAttr` | `Rtsa` | `ragtag#commands#task_set_attr()` | Set a task attribute |
 | `RagtagTaskGetAttr` | `Rtga` | `ragtag#commands#task_get_attr()` | Get a task attribute |
+| `RagtagTaskComplete` | `Rtco` | `ragtag#commands#task_complete()` | Mark a task as done |
+| `RagtagTaskActivate` | `Rta` | `ragtag#commands#task_activate()` | Set a task's status to active |
+| `RagtagTaskDeactivate` | `Rtd` | `ragtag#commands#task_deactivate()` | Set a task's status to inactive |
+| `RagtagTaskBlock` | `Rtb` | `ragtag#commands#task_block()` | Set a task's status to blocked |
+| `RagtagTaskAbandon` | `Rtab` | `ragtag#commands#task_abandon()` | Set a task's status to abandoned |
+| `RagtagTaskPrioritize` | `Rtp` | `ragtag#commands#task_prioritize()` | Set a task's priority |
 | `RagtagSummary` | `Rs` | `ragtag#commands#summary()` | Show tag summary |
 | `RagtagQuery` | `Rq` | `ragtag#commands#query()` | Find and highlight tags |
 
@@ -482,7 +489,7 @@ sequenceDiagram
 
     User->>Plugin: :RagtagSummary [--path P]
     Plugin->>Plugin: Parse args via argonaut
-    Plugin->>CLI: ragtag task summary --no-color --path <path>
+    Plugin->>CLI: ragtag summary --no-color --path <path>
     CLI-->>Plugin: Summary text
     Plugin->>User: Echo summary output
 ```
@@ -534,6 +541,98 @@ When highlighting tags in the source buffer:
 
 * If the CLI finds no matching tags, print an informational message
 * If `--tag` is specified and no tags of that name exist, print a message
+
+### Status-Change Commands (`RagtagTaskComplete`, `RagtagTaskActivate`, `RagtagTaskDeactivate`, `RagtagTaskBlock`, `RagtagTaskAbandon`)
+
+**Purpose:** Set a task's `status` to a category-canonical keyword in a single command, without having to type the keyword. Each command maps to the matching `ragtag task <verb>` CLI subcommand:
+
+| Vim Command | Alias | CLI Subcommand | Resulting Status |
+|-------------|-------|----------------|------------------|
+| `RagtagTaskComplete` | `Rtco` | `task complete` | First keyword in `status_keywords.done` (default `"done"`) |
+| `RagtagTaskActivate` | `Rta` | `task activate` | First keyword in `status_keywords.active` (default `"active"`) |
+| `RagtagTaskDeactivate` | `Rtd` | `task deactivate` | First keyword in `status_keywords.inactive` (default `"inactive"`) |
+| `RagtagTaskBlock` | `Rtb` | `task block` | First keyword in `status_keywords.blocked` (default `"blocked"`) |
+| `RagtagTaskAbandon` | `Rtab` | `task abandon` | First keyword in `status_keywords.abandoned` (default `"abandoned"`) |
+
+#### Arguments (all five commands)
+
+| Argument | Short | Type | Default | Description |
+|----------|-------|------|---------|-------------|
+| `--id` | `-i` | String | *(cursor detection)* | Task ID (or unambiguous prefix) — overrides cursor detection |
+| `--path` | `-p` | String | Current file | Search path for the CLI |
+| `--help` | `-h` | Boolean | `false` | Show help menu |
+
+#### Behavior
+
+1. Parse arguments via argonaut.
+2. Resolve the target task ID — either from `--id` or, when absent, from `ragtag#tag#find_tag_at_cursor()`.
+3. Invoke `ragtag task <verb> <id> --no-edit --no-color --path <path>`. The CLI returns the reconstructed `@task(...)` string (with `time_last_updated` refreshed to the current UTC time).
+4. Replace the tag at its source location in the buffer via `ragtag#tag#replace_tag_in_buffer()`.
+
+#### Error Handling
+
+* If `--id` is omitted and no `@task(...)` tag is found at the cursor, an error is printed.
+* If the CLI rejects the operation (e.g., the configured `status_keywords` category is empty), the CLI's stderr is displayed.
+
+### `RagtagTaskPrioritize` (alias: `Rtp`)
+
+**Purpose:** Set a task's `priority` to a specific non-negative integer.
+
+#### Arguments
+
+| Argument | Short | Type | Default | Description |
+|----------|-------|------|---------|-------------|
+| `--priority` | `-P` | Integer | *(required)* | New priority value (`0` = highest) |
+| `--id` | `-i` | String | *(cursor detection)* | Task ID (or unambiguous prefix) |
+| `--path` | `-p` | String | Current file | Search path for the CLI |
+| `--help` | `-h` | Boolean | `false` | Show help menu |
+
+#### Behavior
+
+1. Parse arguments via argonaut.
+2. Validate that `--priority` is supplied and is a non-negative integer.
+3. Resolve the target task ID (via `--id` or cursor detection).
+4. Invoke `ragtag task prioritize <priority> <id> --no-edit --no-color --path <path>`. Note the CLI's argument order: **priority first, then ID**.
+5. Replace the tag in the buffer with the CLI's reconstructed string (which also has `time_last_updated` refreshed).
+
+#### Error Handling
+
+* Missing or invalid `--priority` is reported via argonaut's help output.
+* Cursor/ID resolution errors mirror those of `RagtagTaskSetAttr`.
+
+### `RagtagTaskCreate` (alias: `Rtcr`)
+
+**Purpose:** Create a new `@task(...)` tag non-interactively and insert it into the current buffer.
+
+#### Arguments
+
+| Argument | Short | Type | Default | Description |
+|----------|-------|------|---------|-------------|
+| `--title` | `-T` | String | *(required)* | Task title |
+| `--description` | `-D` | String | *(none)* | Task description |
+| `--owner` | `-O` | String | *(CLI default)* | Task owner |
+| `--status` | `-S` | String | *(CLI default)* | Initial status |
+| `--priority` | `-P` | Integer | *(none)* | Priority value (`0` = highest) |
+| `--worktime-estimate` | `-E` | Number | *(none)* | Estimated work time |
+| `--worktime-spent` | `-W` | Number | `0` | Work time already spent |
+| `--worktime-units` | `-U` | String | *(CLI default)* | Units: `hours`, `days`, or `weeks` |
+| `--pid` |  | String | *(none)* | Parent task ID |
+| `--path` | `-p` | String | Current file | Search path forwarded to the CLI |
+| `--help` | `-h` | Boolean | `false` | Show help menu |
+
+#### Behavior
+
+1. Parse arguments via argonaut. Reject if `--title` is missing.
+2. Invoke `ragtag task create` with all provided fields, plus `--format multiline` and `--no-color`. The CLI prints a complete `@task(...)` string with `id`, `time_created`, `time_last_updated`, and a default `worktime_spent=0` already filled in.
+3. Indent every line of the returned tag to match the indentation of the current cursor line (so that the multiline tag visually aligns with surrounding content).
+4. Insert the indented tag into the buffer **after** the cursor line via `append()`.
+
+The command is intentionally non-interactive — the CLI's interactive `task create` mode runs on a TTY and is not used from inside Vim. To capture a task interactively, run `ragtag task create` in a terminal and paste the result.
+
+#### Error Handling
+
+* Missing `--title` produces argonaut's usage output.
+* CLI errors (invalid status keyword, invalid worktime units, etc.) are surfaced via `ragtag#utils#print_error()`.
 
 ## Configuration
 

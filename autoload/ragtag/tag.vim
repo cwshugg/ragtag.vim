@@ -349,6 +349,9 @@ endfunction
 " a:location - dict with 'start_line', 'start_col', 'end_line', 'end_col'
 " a:new_text - the replacement text (may contain newlines)
 function! ragtag#tag#replace_tag_in_buffer(location, new_text) abort
+    " Save cursor position so it can be restored after the replacement.
+    let l:save_view = winsaveview()
+
     let l:start_line = a:location.start_line
     let l:start_col = a:location.start_col
     let l:end_line = a:location.end_line
@@ -390,4 +393,7 @@ function! ragtag#tag#replace_tag_in_buffer(location, new_text) abort
 
     " Restore modifiable state.
     let &l:modifiable = l:save_modifiable
+
+    " Restore cursor position.
+    call winrestview(l:save_view)
 endfunction
