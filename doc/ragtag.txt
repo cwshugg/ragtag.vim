@@ -1,0 +1,237 @@
+*ragtag.txt*    Interactive Vim interface for the ragtag CLI tool.
+
+Author:     cwshugg
+License:    MIT
+
+==============================================================================
+CONTENTS                                                    *ragtag-contents*
+
+    1. Introduction .......................... |ragtag-intro|
+    2. Installation .......................... |ragtag-install|
+    3. Commands .............................. |ragtag-commands|
+    4. Configuration ......................... |ragtag-config|
+    5. Key Mappings .......................... |ragtag-mappings|
+    6. Highlight Groups ...................... |ragtag-highlights|
+
+==============================================================================
+1. INTRODUCTION                                                *ragtag-intro*
+
+ragtag.vim provides an interactive Vim interface to the ragtag CLI tool.
+It allows you to list, query, inspect, and modify `@tag(...)` annotations —
+and specifically `@task(...)` tags — directly from within Vim.
+
+Features:
+
+    * Interactive task list buffer with inline attribute editing
+    * Cursor-aware tag detection and modification
+    * Tag querying with search-register integration for navigation
+    * File summary display
+
+The plugin shells out to the `ragtag` binary for all tag operations; it does
+not reimplement any parsing logic.
+
+==============================================================================
+2. INSTALLATION                                              *ragtag-install*
+
+ragtag.vim has two dependencies:
+
+    1. The `ragtag` CLI binary must be installed and available in your PATH
+       (or configured via |g:ragtag_binary|).
+
+    2. argonaut.vim (https://github.com/cwshugg/argonaut.vim) must be
+       installed for argument parsing and tab completion.
+
+Install with your preferred plugin manager. For example, with vim-plug:
+>
+    Plug 'cwshugg/argonaut.vim'
+    Plug 'cwshugg/ragtag.vim'
+<
+
+==============================================================================
+3. COMMANDS                                                 *ragtag-commands*
+
+All commands accept `-h` or `--help` to display a help menu with available
+arguments.
+
+                                                            *:RagtagTaskList*
+:RagtagTaskList [args]                                                 *:Rtl*
+    Display all tasks in a custom interactive buffer with inline editing
+    capabilities. Tasks are rendered in a formatted table.
+
+    Arguments:
+        --path, -p PATH     File or directory to search (default: current file)
+        --filter, -f EXPR   Filter expression (e.g., status=active)
+        --sort, -s FIELD    Field to sort by (e.g., priority)
+        --all, -a           Include done and abandoned tasks
+        --help, -h          Show help menu
+
+    Example:
+>
+        :RagtagTaskList --path src/ --filter status=active --sort priority
+        :Rtl -a
+<
+
+                                                         *:RagtagTaskSetAttr*
+:RagtagTaskSetAttr [args]                                             *:Rtsa*
+    Set an attribute on a task. The task can be identified by explicit --id
+    or by placing the cursor on a `@task(...)` tag in the current buffer.
+
+    Arguments:
+        --id, -i ID         Task ID (overrides cursor detection)
+        --attr, -A ATTR     Attribute name (required)
+        --value, -v VALUE   New attribute value (required)
+        --path, -p PATH     File or directory to search
+        --help, -h          Show help menu
+
+    Example:
+>
+        :RagtagTaskSetAttr --attr status --value active
+        :Rtsa -i abc123 -A priority -v 1
+<
+
+                                                         *:RagtagTaskGetAttr*
+:RagtagTaskGetAttr [args]                                             *:Rtga*
+    Retrieve and display a single attribute value from a task. The task can
+    be identified by explicit --id or by cursor detection.
+
+    Arguments:
+        --id, -i ID         Task ID (overrides cursor detection)
+        --attr, -A ATTR     Attribute name (required)
+        --path, -p PATH     File or directory to search
+        --help, -h          Show help menu
+
+    Example:
+>
+        :RagtagTaskGetAttr --attr status
+        :Rtga -i abc123 -A owner
+<
+
+                                                           *:RagtagSummary*
+:RagtagSummary [args]                                                  *:Rs*
+    Display a summary of tags found in the current file or directory.
+
+    Arguments:
+        --path, -p PATH     File or directory to summarize
+        --help, -h          Show help menu
+
+    Example:
+>
+        :RagtagSummary --path docs/
+        :Rs
+<
+
+                                                             *:RagtagQuery*
+:RagtagQuery [args]                                                    *:Rq*
+    Find tags in the current buffer and set up Vim search highlighting for
+    navigation with `n`/`N`. Applies custom highlight groups for tag
+    components (sigil, name, attributes, values).
+
+    Arguments:
+        --tag, -t TAG_NAME  Tag name to search for (default: all tags)
+        --path, -p PATH     File to query
+        --help, -h          Show help menu
+
+    Example:
+>
+        :RagtagQuery --tag task
+        :Rq
+<
+
+==============================================================================
+4. CONFIGURATION                                              *ragtag-config*
+
+All configuration variables can be set in your vimrc before the plugin loads.
+
+                                                           *g:ragtag_binary*
+g:ragtag_binary                                     (default: 'ragtag')
+    Path to the ragtag CLI binary. Set this if the binary is not in your
+    PATH or has a different name.
+>
+        let g:ragtag_binary = '/usr/local/bin/ragtag'
+<
+
+                                                           *g:ragtag_config*
+g:ragtag_config                                     (default: '')
+    Path to a ragtag configuration file. When set, the plugin passes
+    `--config <path>` to all CLI invocations. An empty string means
+    auto-detect (the CLI's default behavior).
+>
+        let g:ragtag_config = '~/.config/ragtag/config.toml'
+<
+
+                                                     *g:ragtag_default_path*
+g:ragtag_default_path                               (default: '')
+    Default `--path` value used when no explicit path is provided. An empty
+    string means use the current buffer's file path.
+>
+        let g:ragtag_default_path = '~/projects/myproject'
+<
+
+                                                     *g:ragtag_print_prefix*
+g:ragtag_print_prefix                               (default: '[ragtag.vim] ')
+    Prefix string for all plugin messages displayed via |echomsg|.
+>
+        let g:ragtag_print_prefix = 'ragtag: '
+<
+
+==============================================================================
+5. KEY MAPPINGS                                             *ragtag-mappings*
+
+The following key mappings are available only within the task list buffer
+(filetype `ragtag_list`). All mappings are buffer-local.
+
+    Key         Action~
+    <CR>        Jump to the task's source file and line in the previous window
+    s           Prompt to change the task's status
+    p           Prompt to change the task's priority
+    o           Prompt to change the task's owner
+    t           Prompt to change the task's title
+    d           Prompt to change the task's description
+    q           Close the task list buffer
+    r           Refresh the task list by re-running the CLI
+
+When editing an attribute (s, p, o, t, d), the current value is shown in
+brackets. Enter a new value to apply the change, or press <Esc> or submit
+an empty string to cancel.
+
+==============================================================================
+6. HIGHLIGHT GROUPS                                       *ragtag-highlights*
+
+All highlight groups use `highlight default` so they can be overridden in
+your vimrc or colorscheme.
+
+Source Buffer Highlights (for |:RagtagQuery|):~
+
+    Group                 Default Link      Applied To~
+    RagtagTagSigil        Special           The `@` character
+    RagtagTagName         Identifier        Tag name (e.g., task)
+    RagtagTagParen        Delimiter         The `(` and `)` delimiters
+    RagtagAttrName        Type              Attribute names (e.g., id)
+    RagtagAttrEquals      Operator          The `=` sign
+    RagtagAttrValue       String            Attribute values
+
+Task List Buffer Highlights (for |:RagtagTaskList|):~
+
+    Group                       Default Link      Applied To~
+    RagtagListHeader            Title             Column headers
+    RagtagListSeparator         NonText           Separator lines
+    RagtagListId                Constant          Task ID column
+    RagtagListTitle             Normal            Task title column
+    RagtagListOwner             Identifier        Owner column
+    RagtagListFile              Directory         File path column
+    RagtagListColumnSep         NonText           Column separator (│)
+
+    RagtagListStatusDone        DiffAdd           Status = done
+    RagtagListStatusActive      DiffChange        Status = active
+    RagtagListStatusBlocked     ErrorMsg          Status = blocked
+    RagtagListStatusAbandoned   WarningMsg        Status = abandoned
+    RagtagListStatusInactive    Comment           Status = new/inactive
+
+    RagtagListPriority0         ErrorMsg          Priority 0 (critical)
+    RagtagListPriority1         WarningMsg        Priority 1 (high)
+    RagtagListPriority2         Todo              Priority 2 (medium-high)
+    RagtagListPriority3         DiffChange        Priority 3 (medium)
+    RagtagListPriority4         DiffAdd           Priority 4+ (low)
+
+==============================================================================
+vim:tw=78:ts=8:ft=help:norl:
