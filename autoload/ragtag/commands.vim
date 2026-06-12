@@ -299,6 +299,13 @@ let s:summary_argset = argonaut#argset#new([
     \ s:arg_path,
 \ ])
 
+" Argset for :RagtagTaskSummary — includes path, sort, and help.
+let s:task_summary_argset = argonaut#argset#new([
+    \ s:arg_help,
+    \ s:arg_path,
+    \ s:arg_sort,
+\ ])
+
 " Argset for :RagtagQuery — includes path, tag, and help.
 let s:query_argset = argonaut#argset#new([
     \ s:arg_help,
@@ -368,7 +375,7 @@ endfunction
 " since both take only --path and --help.
 function! ragtag#commands#task_summary_complete(arg, line, pos)
     return argonaut#completion#complete(a:arg, a:line, a:pos,
-        \ s:summary_argset)
+        \ s:task_summary_argset)
 endfunction
 
 " Tab completion function for :RagtagQuery.
@@ -629,7 +636,7 @@ endfunction
 " rendered as a single line; pressing <CR> on a line opens the task's source
 " file at the corresponding line. Press 'q' to close the summary buffer.
 function! ragtag#commands#task_summary(input) abort
-    let l:parser = argonaut#argparser#new(s:summary_argset)
+    let l:parser = argonaut#argparser#new(s:task_summary_argset)
     try
         call argonaut#argparser#parse(l:parser, a:input)
         if argonaut#argparser#has_arg(l:parser, '--help')
@@ -641,9 +648,19 @@ function! ragtag#commands#task_summary(input) abort
         " Resolve the target path.
         let l:path = ragtag#utils#resolve_path(l:parser)
 
-        " Fetch raw task data (same source as RagtagTaskList).
+        " Determine sort mode (default: appearance).
+        let l:sort = 'appearance'
+        if argonaut#argparser#has_arg(l:parser, '--sort')
+            let l:sort_values = argonaut#argparser#get_arg(l:parser, '--sort')
+            if len(l:sort_values) > 0
+                let l:sort = l:sort_values[0]
+            endif
+        endif
+
+        " Fetch raw task data sorted by the chosen field.
         let l:output = ragtag#utils#exec(
-            \ ['task', 'list', '--format', 'raw', '--all', '--path', l:path])
+            \ ['task', 'list', '--format', 'raw', '--all',
+            \  '--sort', l:sort, '--path', l:path])
         let l:tasks = ragtag#utils#parse_raw_tasks(l:output)
 
         " Remember the source window so we can return there for jumps.
