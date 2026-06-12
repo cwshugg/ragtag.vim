@@ -737,18 +737,20 @@ function! ragtag#commands#query(input) abort
         call ragtag#highlight#define()
 
         " Apply finer-grained highlight groups via matchadd() for tag
-        " components in the current window.
+        " components in the current window. Priority -1 ensures that Vim's
+        " built-in search highlighting (hlsearch) renders on top when the
+        " user navigates with n/N, while the syntax colors persist once the
+        " search is cleared.
         call clearmatches()
-        call matchadd('RagtagTagSigil', '@\ze\w\+(')
-        call matchadd('RagtagTagName', '@\zs\w\+\ze(')
-        call matchadd('RagtagTagParen', '@\w\+\zs(\ze')
-        call matchadd('RagtagTagParen', '@\w\+([^)]*\zs)\ze')
-        call matchadd('RagtagAttrName', '(\zs\w\+\ze=\|,\s*\zs\w\+\ze=')
-        call matchadd('RagtagAttrEquals', '\w\zs=\ze[^=]')
-        call matchadd('RagtagAttrValue', '=\zs[^,)]*\ze')
+        call matchadd('RagtagTagSigil', '@\ze\w\+(', -1)
+        call matchadd('RagtagTagName', '@\zs\w\+\ze(', -1)
+        call matchadd('RagtagTagParen', '@\w\+\zs(\ze', -1)
+        call matchadd('RagtagTagParen', '@\w\+([^)]*\zs)\ze', -1)
+        call matchadd('RagtagAttrName', '(\zs\w\+\ze=\|,\s*\zs\w\+\ze=', -1)
+        call matchadd('RagtagAttrEquals', '\w\zs=\ze[^=]', -1)
+        call matchadd('RagtagAttrValue', '=\zs[^,)]*\ze', -1)
 
-        call ragtag#utils#print('Found ' . l:match_count .
-            \ ' tag(s). Use n/N to navigate.')
+        call ragtag#utils#print('Found ' . l:match_count . ' tag(s).')
     catch
         call ragtag#utils#print_error(v:exception)
     endtry
