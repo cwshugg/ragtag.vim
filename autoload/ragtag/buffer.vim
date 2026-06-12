@@ -346,3 +346,157 @@ function! ragtag#buffer#refresh() abort
         call ragtag#utils#print_error(v:exception)
     endtry
 endfunction
+
+" ========================= Summary Buffer =================================== "
+
+" Buffer name for the ragtag task summary buffer.
+let s:summary_buffer_name = 'ragtag://task-summary'
+
+" Formats a single task into a one-line summary string.
+" Format: ID_SHORT [OWNER] [PRIORITY/STATUS] [SPENT/ESTIMATE UNITS] TITLE
+function! s:format_summary_line(task) abort
+    let l:id = strpart(get(a:task, 'id', ''), 0, 8)
+    let l:owner = get(a:task, 'owner', '')
+    if empty(l:owner)
+        let l:owner = '-'
+    endif
+    let l:priority = get(a:task, 'priority', '')
+    if empty(l:priority)
+        let l:priority = '-'
+    endif
+    let l:status = get(a:task, 'status', '')
+    if empty(l:status)
+        let l:status = '-'
+    endif
+    let l:spent = get(a:task, 'worktime_spent', '')
+    if empty(l:spent)
+        let l:spent = '0'
+    endif
+    let l:estimate = get(a:task, 'worktime_estimate', '')
+    if empty(l:estimate)
+        let l:estimate = '-'
+    endif
+    let l:units = get(a:task, 'worktime_units', '')
+    if empty(l:units)
+        let l:units = 'hours'
+    endif
+    let l:title = get(a:task, 'title', '')
+
+    return printf('%s [%s] [%s/%s] [%s/%s %s] %s',
+        \ l:id, l:owner, l:priority, l:status,
+        \ l:spent, l:estimate, l:units, l:title)
+endfunction
+
+" Opens (or reuses) the task summary buffer and renders the given tasks.
+" Each line corresponds to one task; pressing <CR> jumps to the task's
+" source location. 'q' closes the buffer.
+"
+" a:tasks         - list of task dicts from `ragtag#utils#parse_raw_tasks()`
+" a:source_winid  - window id to return to when jumping to a task
+function! ragtag#buffer#open_summary(tasks, source_winid) abort
+    " If a summary buffer already exists, wipe it so we re-render cleanly.
+    let l:existing = bufnr(s:summary_buffer_name)
+    if l:existing != -1 && bufexists(l:existing)
+        execute 'bwipeout! ' . l:existing
+    endif
+
+    " Open a new scratch buffer in a bottom split.
+    execute 'botright new'
+    execute 'file ' . s:summary_buffer_name
+
+    setlocal buftype=nofile
+    setlocal bufhidden=wipe
+    setlocal noswapfile
+    setlocal nobuflisted
+
+    " Render content.
+    setlocal modifiable
+    silent! %delete _
+
+    if empty(a:tasks)
+        call setline(1, 'No tasks found.')
+        let b:ragtag_summary_tasks = []
+    else
+        let l:lines = []
+        let l:meta = []
+        for l:task in a:tasks
+            call add(l:lines, s:format_summary_line(l:task))
+            call add(l:meta, {
+                \ 'file': get(l:task, 'file', ''),
+                \ 'line': get(l:task, 'line', ''),
+                \ })
+        endfor
+        call setline(1, l:lines)
+        let b:ragtag_summary_tasks = l:meta
+    endif
+
+    setlocal nomodifiable
+
+    " Store source window id for use by jump.
+    let b:ragtag_summary_source_winid = a:source_winid
+
+    " Filetype triggers syntax highlighting.
+    setlocal filetype=ragtag_summary
+
+    " Ensure highlight groups are defined before any matchadd() calls.
+    call ragtag#highlight#define()
+
+    " Key mappings.
+    nnoremap <silent> <buffer> <CR> :call ragtag#buffer#summary_jump()<CR>
+    nnoremap <silent> <buffer> q    :bwipeout<CR>
+endfunction
+
+" Jump handler for <CR> in the summary buffer. Looks up the task associated
+" with the current line and opens its source file at the recorded line.
+" If the file is already open in a window, switches to that window; otherwise
+" returns to the source window and runs :edit there.
+function! ragtag#buffer#summary_jump() abort
+    if !exists('b:ragtag_summary_tasks')
+        return
+    endif
+
+    let l:line_nr = line('.')
+    let l:idx = l:line_nr - 1
+    if l:idx < 0 || l:idx >= len(b:ragtag_summary_tasks)
+        return
+    endif
+
+    let l:entry = b:ragtag_summary_tasks[l:idx]
+    let l:file = get(l:entry, 'file', '')
+    let l:src_line = get(l:entry, 'line', '')
+
+    if empty(l:file)
+        call ragtag#utils#print_error('No file associated with this task.')
+        return
+    endif
+
+    let l:source_winid = get(b:, 'ragtag_summary_source_winid', 0)
+
+    " Close the summary buffer first.
+    bwipeout
+
+    " If the file is already open in a window, jump there.
+    let l:bufnr = bufnr(l:file)
+    if l:bufnr != -1
+        let l:winids = win_findbuf(l:bufnr)
+        if !empty(l:winids)
+            call win_gotoid(l:winids[0])
+        else
+            " Return to source window (if still valid) before :edit.
+            if l:source_winid > 0 && win_id2win(l:source_winid) > 0
+                call win_gotoid(l:source_winid)
+            endif
+            execute 'edit ' . fnameescape(l:file)
+        endif
+    else
+        if l:source_winid > 0 && win_id2win(l:source_winid) > 0
+            call win_gotoid(l:source_winid)
+        endif
+        execute 'edit ' . fnameescape(l:file)
+    endif
+
+    if !empty(l:src_line)
+        execute l:src_line
+        normal! zz
+    endif
+endfunction

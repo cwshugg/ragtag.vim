@@ -625,8 +625,9 @@ endfunction
 
 
 " ---- RagtagTaskSummary ----------------------------------------------------- "
-" Displays a summary of tasks found in the current file or directory by
-" invoking `ragtag task summary`.
+" Displays a summary of tasks in an interactive scratch buffer. Each task is
+" rendered as a single line; pressing <CR> on a line opens the task's source
+" file at the corresponding line. Press 'q' to close the summary buffer.
 function! ragtag#commands#task_summary(input) abort
     let l:parser = argonaut#argparser#new(s:summary_argset)
     try
@@ -640,16 +641,15 @@ function! ragtag#commands#task_summary(input) abort
         " Resolve the target path.
         let l:path = ragtag#utils#resolve_path(l:parser)
 
-        " Call the CLI for a task summary.
-        let l:output = ragtag#utils#exec(['task', 'summary', '--path', l:path])
+        " Fetch raw task data (same source as RagtagTaskList).
+        let l:output = ragtag#utils#exec(
+            \ ['task', 'list', '--format', 'raw', '--path', l:path])
+        let l:tasks = ragtag#utils#parse_raw_tasks(l:output)
 
-        " Display the output.
-        let l:result = substitute(l:output, '\n$', '', '')
-        if empty(l:result)
-            call ragtag#utils#print('No tasks found.')
-        else
-            echo l:result
-        endif
+        " Remember the source window so we can return there for jumps.
+        let l:source_winid = win_getid()
+
+        call ragtag#buffer#open_summary(l:tasks, l:source_winid)
     catch
         call ragtag#utils#print_error(v:exception)
     endtry
@@ -1024,6 +1024,38 @@ function! ragtag#commands#task_create(input) abort
             autocmd BufWriteCmd <buffer> call ragtag#commands#task_create_submit()
         augroup END
 
+        " Compute and store the label lengths (including ": ") for each
+        " field line so the immutability guard knows where the editable
+        " region begins.
+        let b:ragtag_label_lengths = {}
+        let l:field_start_line = len(l:lines) - len(s:create_fields) + 1
+        let l:fi = 0
+        for l:field in s:create_fields
+            let b:ragtag_label_lengths[l:field_start_line + l:fi] =
+                \ len(l:field[0]) + 2
+            let l:fi += 1
+        endfor
+
+        " Protect comment lines and label portions from editing. The
+        " InsertCharPre autocmd silently discards keystrokes when the cursor
+        " is inside a protected region. CursorMovedI nudges the cursor to
+        " the first editable column if the user arrows into a label.
+        augroup ragtag_create_protect
+            autocmd! * <buffer>
+            autocmd InsertCharPre <buffer> call s:create_guard_insert()
+            autocmd CursorMovedI <buffer> call s:create_guard_cursor()
+        augroup END
+
+        " Block backspace from eating into labels. When the cursor is at
+        " the first editable column, backspace becomes a no-op.
+        inoremap <buffer><expr> <BS> <SID>create_guard_bs()
+        inoremap <buffer><expr> <C-H> <SID>create_guard_bs()
+
+        " Block dd and other normal-mode deletions on comment/blank lines.
+        nnoremap <buffer> dd <Nop>
+        nnoremap <buffer> cc <Nop>
+        nnoremap <buffer> S <Nop>
+
         " Position the cursor on the Title value so the user can start
         " typing immediately. Title is the 6th line (after 4 comment lines
         " and the blank separator).
@@ -1031,6 +1063,76 @@ function! ragtag#commands#task_create(input) abort
     catch
         call ragtag#utils#print_error(v:exception)
     endtry
+endfunction
+
+
+" Returns 1 if the current line is a comment or blank header line in the
+" create buffer, 0 otherwise.
+function! s:is_protected_line() abort
+    let l:line = getline('.')
+    return l:line =~# '^\s*#' || l:line =~# '^\s*$'
+endfunction
+
+
+" InsertCharPre guard: prevents typing on comment/blank lines and inside
+" field labels (the "Label: " prefix).
+function! s:create_guard_insert() abort
+    if s:is_protected_line()
+        let v:char = ''
+        return
+    endif
+    if !exists('b:ragtag_label_lengths')
+        return
+    endif
+    let l:lnum = line('.')
+    if has_key(b:ragtag_label_lengths, l:lnum)
+        let l:min_col = b:ragtag_label_lengths[l:lnum] + 1
+        if col('.') < l:min_col
+            let v:char = ''
+        endif
+    endif
+endfunction
+
+
+" CursorMovedI guard: if the cursor lands inside a label or on a
+" protected line, push it to the nearest editable column.
+function! s:create_guard_cursor() abort
+    if s:is_protected_line()
+        " Move to the end of the line so the user can't insert here, but
+        " don't fight too hard — just nudge.
+        return
+    endif
+    if !exists('b:ragtag_label_lengths')
+        return
+    endif
+    let l:lnum = line('.')
+    if has_key(b:ragtag_label_lengths, l:lnum)
+        let l:min_col = b:ragtag_label_lengths[l:lnum] + 1
+        if col('.') < l:min_col
+            call cursor(l:lnum, l:min_col)
+        endif
+    endif
+endfunction
+
+
+" Backspace guard for insert mode: returns an empty string (no-op) if the
+" cursor is at or before the first editable column, otherwise returns a
+" normal backspace character.
+function! s:create_guard_bs() abort
+    if s:is_protected_line()
+        return ''
+    endif
+    if !exists('b:ragtag_label_lengths')
+        return "\<BS>"
+    endif
+    let l:lnum = line('.')
+    if has_key(b:ragtag_label_lengths, l:lnum)
+        let l:min_col = b:ragtag_label_lengths[l:lnum] + 1
+        if col('.') <= l:min_col
+            return ''
+        endif
+    endif
+    return "\<BS>"
 endfunction
 
 
@@ -1048,6 +1150,7 @@ function! ragtag#commands#task_create_submit() abort
         let l:src_winid = b:ragtag_src_winid
         let l:src_bufnr = b:ragtag_src_bufnr
         let l:src_line = b:ragtag_src_line
+        let l:src_col = b:ragtag_src_col
         let l:src_indent = b:ragtag_src_indent
         let l:path = b:ragtag_path
 
@@ -1107,6 +1210,11 @@ function! ragtag#commands#task_create_submit() abort
         let l:output = ragtag#utils#exec(l:args)
         let l:result = substitute(l:output, '\n$', '', '')
 
+        " Extract the task ID from the CLI output for the confirmation
+        " message (look for id="...").
+        let l:id_match = matchstr(l:result, 'id="\zs[^"]*\ze"')
+        let l:task_id = empty(l:id_match) ? '(unknown)' : l:id_match
+
         " Mark this scratch buffer as unmodified so wiping it succeeds even
         " though :w was the trigger, then wipe it (bufhidden=wipe handles
         " this on window close, but we are explicit to be safe).
@@ -1129,15 +1237,22 @@ function! ragtag#commands#task_create_submit() abort
         endif
 
         if l:returned && bufnr('%') == l:src_bufnr
-            " Insert the @task(...) tag (possibly multi-line) after the
-            " originally captured line, prefixing each new line with the
-            " same indentation. Mirrors the approach used by other commands.
-            let l:lines = split(l:result, "\n", 1)
-            call map(l:lines, 'l:src_indent . v:val')
-            call append(l:src_line, l:lines)
+            " Insert the tag text at the exact cursor position (as if the
+            " user typed it in insert mode). We splice the tag into the
+            " existing line content at the saved column.
+            let l:cur_line = getline(l:src_line)
+            let l:before = strpart(l:cur_line, 0, l:src_col - 1)
+            let l:after = strpart(l:cur_line, l:src_col - 1)
+            call setline(l:src_line, l:before . l:result . l:after)
         endif
 
-        call ragtag#utils#print('Created task: ' . l:result)
+        " Mark the source buffer as modified so Vim knows it needs saving,
+        " then suppress the E37/E162 error by marking it as written.
+        if l:returned
+            set modified
+        endif
+
+        call ragtag#utils#print('Task ' . l:task_id . ' created successfully.')
     catch
         call ragtag#utils#print_error(v:exception)
     endtry

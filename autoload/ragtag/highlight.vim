@@ -39,6 +39,18 @@ function! ragtag#highlight#define() abort
     " Interactive create-task buffer highlights.
     highlight default link RagtagCreateLabel Comment
     highlight default link RagtagCreateComment Comment
+
+    " Task summary buffer highlights.
+    " ID (first 8 hex chars on a line) — cyan/teal.
+    hi def RagtagSummaryId ctermfg=14 guifg=#56b6c2
+    " Brackets — dim gray.
+    hi def RagtagSummaryBracket ctermfg=8 guifg=#5c6370
+    " Owner — blue/purple.
+    hi def RagtagSummaryOwner ctermfg=13 guifg=#c678dd
+    " Priority/Status — yellow/orange.
+    hi def RagtagSummaryPriStatus ctermfg=11 guifg=#e5c07b
+    " Worktime — green.
+    hi def RagtagSummaryWorktime ctermfg=10 guifg=#98c379
 endfunction
 
 " Define groups on load (also called on ColorScheme from plugin/ragtag.vim).

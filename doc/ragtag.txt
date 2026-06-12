@@ -53,15 +53,15 @@ Install with your preferred plugin manager. For example, with vim-plug:
 All commands accept `-h` or `--help` to display a help menu with available
 arguments.
 
-                                                            *:RagtagTaskList*
-:RagtagTaskList [args]                                                 *:Rtl*
+                                                           *:RagtagTaskList*
+:RagtagTaskList [args]
     Display all tasks in a custom interactive buffer with inline editing
     capabilities. Tasks are rendered in a formatted table.
 
     The task list remembers the path it was opened with. Pressing `r` to
     refresh re-runs the CLI query against that same stored path and does not
     re-resolve it from the current buffer. To query a different path, re-run
-    the command explicitly: `:Rtl --path <new_path>`.
+    the command explicitly: `:RagtagTaskList --path <new_path>`.
 
     Arguments:
         --path, -p PATH     File or directory to search (default: current file)
@@ -73,11 +73,11 @@ arguments.
     Example:
 >
         :RagtagTaskList --path src/ --filter status=active --sort priority
-        :Rtl -a
+        :RagtagTaskList -a
 <
 
                                                          *:RagtagTaskSetAttr*
-:RagtagTaskSetAttr [args]                                             *:Rtsa*
+:RagtagTaskSetAttr [args]
     Set an attribute on a task. The task can be identified by explicit --id
     or by placing the cursor on a `@task(...)` tag in the current buffer.
 
@@ -91,11 +91,11 @@ arguments.
     Example:
 >
         :RagtagTaskSetAttr --attr status --value active
-        :Rtsa -i abc123 -A priority -v 1
+        :RagtagTaskSetAttr -i abc123 -A priority -v 1
 <
 
                                                          *:RagtagTaskGetAttr*
-:RagtagTaskGetAttr [args]                                             *:Rtga*
+:RagtagTaskGetAttr [args]
     Retrieve and display a single attribute value from a task. The task can
     be identified by explicit --id or by cursor detection.
 
@@ -108,11 +108,11 @@ arguments.
     Example:
 >
         :RagtagTaskGetAttr --attr status
-        :Rtga -i abc123 -A owner
+        :RagtagTaskGetAttr -i abc123 -A owner
 <
 
                                                            *:RagtagSummary*
-:RagtagSummary [args]                                                  *:Rs*
+:RagtagSummary [args]
     Display a summary of all tags (any tag name) found in the current file
     or directory. Invokes `ragtag summary`.
 
@@ -123,13 +123,22 @@ arguments.
     Example:
 >
         :RagtagSummary --path docs/
-        :Rs
+        :RagtagSummary
 <
 
                                                          *:RagtagTaskSummary*
-:RagtagTaskSummary [args]                                             *:Rts*
-    Display a summary of `@task(...)` tags found in the current file or
-    directory. Invokes `ragtag task summary`.
+:RagtagTaskSummary [args]
+    Open an interactive scratch buffer summarizing `@task(...)` tags found
+    in the current file or directory. Each task occupies one line in the
+    form:
+>
+        ID_SHORT [OWNER] [PRIORITY/STATUS] [SPENT/ESTIMATE UNITS] TITLE
+<
+    Buffer-local mappings:
+        <CR>    Open the task's source file at the corresponding line. If
+                the file is already open in a window, switches to it
+                instead of opening a new buffer.
+        q       Close the summary buffer.
 
     Arguments:
         --path, -p PATH     File or directory to summarize
@@ -138,11 +147,11 @@ arguments.
     Example:
 >
         :RagtagTaskSummary --path src/
-        :Rts
+        :RagtagTaskSummary
 <
 
                                                              *:RagtagQuery*
-:RagtagQuery [args]                                                    *:Rq*
+:RagtagQuery [args]
     Find tags in the current buffer and set up Vim search highlighting for
     navigation with `n`/`N`. Applies custom highlight groups for tag
     components (sigil, name, attributes, values).
@@ -155,11 +164,11 @@ arguments.
     Example:
 >
         :RagtagQuery --tag task
-        :Rq
+        :RagtagQuery
 <
 
                                                         *:RagtagTaskComplete*
-:RagtagTaskComplete [args]                                            *:Rtco*
+:RagtagTaskComplete [args]
     Mark a task as done (status → complete). The task can be identified by
     explicit --id or by placing the cursor on a `@task(...)` tag.
 
@@ -171,11 +180,11 @@ arguments.
     Example:
 >
         :RagtagTaskComplete
-        :Rtco --id abc123ef
+        :RagtagTaskComplete --id abc123ef
 <
 
                                                         *:RagtagTaskActivate*
-:RagtagTaskActivate [args]                                             *:Rta*
+:RagtagTaskActivate [args]
     Set a task's status to active. The task can be identified by explicit
     --id or by cursor detection.
 
@@ -187,11 +196,11 @@ arguments.
     Example:
 >
         :RagtagTaskActivate
-        :Rta --id abc123ef
+        :RagtagTaskActivate --id abc123ef
 <
 
                                                       *:RagtagTaskDeactivate*
-:RagtagTaskDeactivate [args]                                           *:Rtd*
+:RagtagTaskDeactivate [args]
     Set a task's status to inactive. The task can be identified by explicit
     --id or by cursor detection.
 
@@ -203,11 +212,11 @@ arguments.
     Example:
 >
         :RagtagTaskDeactivate
-        :Rtd --id abc123ef
+        :RagtagTaskDeactivate --id abc123ef
 <
 
-                                                           *:RagtagTaskBlock*
-:RagtagTaskBlock [args]                                                *:Rtb*
+                                                          *:RagtagTaskBlock*
+:RagtagTaskBlock [args]
     Set a task's status to blocked. The task can be identified by explicit
     --id or by cursor detection.
 
@@ -219,11 +228,11 @@ arguments.
     Example:
 >
         :RagtagTaskBlock
-        :Rtb --id abc123ef
+        :RagtagTaskBlock --id abc123ef
 <
 
                                                           *:RagtagTaskAbandon*
-:RagtagTaskAbandon [args]                                             *:Rtab*
+:RagtagTaskAbandon [args]
     Set a task's status to abandoned. The task can be identified by explicit
     --id or by cursor detection.
 
@@ -235,11 +244,11 @@ arguments.
     Example:
 >
         :RagtagTaskAbandon
-        :Rtab --id abc123ef
+        :RagtagTaskAbandon --id abc123ef
 <
 
                                                       *:RagtagTaskPrioritize*
-:RagtagTaskPrioritize [args]                                           *:Rtp*
+:RagtagTaskPrioritize [args]
     Set a task's priority value. The task can be identified by explicit --id
     or by placing the cursor on a `@task(...)` tag.
 
@@ -252,11 +261,11 @@ arguments.
     Example:
 >
         :RagtagTaskPrioritize --priority 1
-        :Rtp -P 2 --id abc123ef
+        :RagtagTaskPrioritize -P 2 --id abc123ef
 <
 
                                                           *:RagtagTaskCreate*
-:RagtagTaskCreate [args]                                              *:Rtcr*
+:RagtagTaskCreate [args]
     Open an interactive scratch buffer for creating a new task. Each task
     attribute is presented on its own line as `Label: value`. Edit the
     values, then `:wq` (or `:w`) to create the task. Use `:q!` to cancel
@@ -286,31 +295,8 @@ arguments.
     Example:
 >
         :RagtagTaskCreate
-        :Rtcr --path src/
+        :RagtagTaskCreate --path src/
 <
-
-------------------------------------------------------------------------------
-Command Abbreviations                                   *ragtag-abbreviations*
-
-All commands have a short alias for faster typing:
-
-    Abbreviation    Full Command              Mnemonic~
-    Rtl             RagtagTaskList            [R]ag[t]ag [l]ist
-    Rtsa            RagtagTaskSetAttr         [R]ag[t]ag [s]et [a]ttr
-    Rtga            RagtagTaskGetAttr         [R]ag[t]ag [g]et [a]ttr
-    Rs              RagtagSummary             [R]ag [s]ummary
-    Rts             RagtagTaskSummary         [R]ag [t]ask [s]ummary
-    Rq              RagtagQuery               [R]ag [q]uery
-    Rtco            RagtagTaskComplete        [R]ag[t]ask [co]mplete
-    Rta             RagtagTaskActivate        [R]ag[t]ask [a]ctivate
-    Rtd             RagtagTaskDeactivate      [R]ag[t]ask [d]eactivate
-    Rtb             RagtagTaskBlock           [R]ag[t]ask [b]lock
-    Rtab            RagtagTaskAbandon         [R]ag[t]ask [ab]andon
-    Rtp             RagtagTaskPrioritize      [R]ag[t]ask [p]rioritize
-    Rtcr            RagtagTaskCreate          [R]ag[t]ask [cr]eate
-
-Tip: Type `:Rt<Tab>` (or `:R<Tab>`) for command completion to browse all
-available ragtag commands without memorizing every abbreviation.
 
 ==============================================================================
 4. CONFIGURATION                                              *ragtag-config*
@@ -413,6 +399,15 @@ Create-Task Buffer Highlights (for |:RagtagTaskCreate|):~
     Group                       Default Link      Applied To~
     RagtagCreateComment         Comment           Comment lines (# ...)
     RagtagCreateLabel           Comment           Field labels (e.g., Title:)
+
+Task Summary Buffer Highlights (for |:RagtagTaskSummary|):~
+
+    Group                       Default Color     Applied To~
+    RagtagSummaryId             cyan/teal         8-char task ID prefix
+    RagtagSummaryBracket        dim gray          Square brackets [ and ]
+    RagtagSummaryOwner          blue/purple       Owner field
+    RagtagSummaryPriStatus      yellow/orange     Priority/Status field
+    RagtagSummaryWorktime       green             Worktime spent/estimate
 
 ==============================================================================
 vim:tw=78:ts=8:ft=help:norl:
