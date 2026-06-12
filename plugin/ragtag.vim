@@ -97,3 +97,88 @@ command!
     \ -complete=customlist,ragtag#commands#query_complete
     \ Rq
     \ call ragtag#commands#query(<q-args>)
+
+" RagtagTaskComplete - Marks a task as done (status → complete).
+command!
+    \ -nargs=*
+    \ -complete=customlist,ragtag#commands#task_complete_complete
+    \ RagtagTaskComplete
+    \ call ragtag#commands#task_complete(<q-args>)
+command!
+    \ -nargs=*
+    \ -complete=customlist,ragtag#commands#task_complete_complete
+    \ Rtco
+    \ call ragtag#commands#task_complete(<q-args>)
+
+" RagtagTaskActivate - Sets a task's status to active.
+command!
+    \ -nargs=*
+    \ -complete=customlist,ragtag#commands#task_activate_complete
+    \ RagtagTaskActivate
+    \ call ragtag#commands#task_activate(<q-args>)
+command!
+    \ -nargs=*
+    \ -complete=customlist,ragtag#commands#task_activate_complete
+    \ Rta
+    \ call ragtag#commands#task_activate(<q-args>)
+
+" RagtagTaskDeactivate - Sets a task's status to inactive.
+command!
+    \ -nargs=*
+    \ -complete=customlist,ragtag#commands#task_deactivate_complete
+    \ RagtagTaskDeactivate
+    \ call ragtag#commands#task_deactivate(<q-args>)
+command!
+    \ -nargs=*
+    \ -complete=customlist,ragtag#commands#task_deactivate_complete
+    \ Rtd
+    \ call ragtag#commands#task_deactivate(<q-args>)
+
+" RagtagTaskBlock - Sets a task's status to blocked.
+command!
+    \ -nargs=*
+    \ -complete=customlist,ragtag#commands#task_block_complete
+    \ RagtagTaskBlock
+    \ call ragtag#commands#task_block(<q-args>)
+command!
+    \ -nargs=*
+    \ -complete=customlist,ragtag#commands#task_block_complete
+    \ Rtb
+    \ call ragtag#commands#task_block(<q-args>)
+
+" RagtagTaskAbandon - Sets a task's status to abandoned.
+command!
+    \ -nargs=*
+    \ -complete=customlist,ragtag#commands#task_abandon_complete
+    \ RagtagTaskAbandon
+    \ call ragtag#commands#task_abandon(<q-args>)
+command!
+    \ -nargs=*
+    \ -complete=customlist,ragtag#commands#task_abandon_complete
+    \ Rtab
+    \ call ragtag#commands#task_abandon(<q-args>)
+
+" RagtagTaskPrioritize - Sets a task's priority value.
+command!
+    \ -nargs=*
+    \ -complete=customlist,ragtag#commands#task_prioritize_complete
+    \ RagtagTaskPrioritize
+    \ call ragtag#commands#task_prioritize(<q-args>)
+command!
+    \ -nargs=*
+    \ -complete=customlist,ragtag#commands#task_prioritize_complete
+    \ Rtp
+    \ call ragtag#commands#task_prioritize(<q-args>)
+
+" RagtagTaskCreate - Creates a new task via CLI args and inserts the
+" resulting @task(...) tag at the cursor position.
+command!
+    \ -nargs=*
+    \ -complete=customlist,ragtag#commands#task_create_complete
+    \ RagtagTaskCreate
+    \ call ragtag#commands#task_create(<q-args>)
+command!
+    \ -nargs=*
+    \ -complete=customlist,ragtag#commands#task_create_complete
+    \ Rtcr
+    \ call ragtag#commands#task_create(<q-args>)

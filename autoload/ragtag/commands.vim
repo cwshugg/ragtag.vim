@@ -122,6 +122,132 @@ call argonaut#arg#set_value_required(s:arg_value, 1)
 call argonaut#arg#set_value_hint(s:arg_value, 'VALUE')
 
 
+" =========== RagtagTaskPrioritize / RagtagTaskCreate Arguments ============= "
+
+" -P / --priority NUM (capital P to avoid conflict with -p/--path).
+let s:arg_priority = argonaut#arg#new()
+let s:arg_priority_argid = argonaut#argid#new('-', 'P')
+call argonaut#argid#set_show_in_autocomplete(s:arg_priority_argid, 0)
+call argonaut#arg#add_argid(s:arg_priority, s:arg_priority_argid)
+let s:arg_priority_argid = argonaut#argid#new('--', 'priority')
+call argonaut#argid#set_show_in_autocomplete(s:arg_priority_argid, 1)
+call argonaut#arg#add_argid(s:arg_priority, s:arg_priority_argid)
+call argonaut#arg#set_description(s:arg_priority,
+    \ 'Task priority (numeric).'
+\ )
+call argonaut#arg#set_value_required(s:arg_priority, 1)
+call argonaut#arg#set_value_hint(s:arg_priority, 'NUM')
+
+" -T / --title TITLE (capital T).
+let s:arg_title = argonaut#arg#new()
+let s:arg_title_argid = argonaut#argid#new('-', 'T')
+call argonaut#argid#set_show_in_autocomplete(s:arg_title_argid, 0)
+call argonaut#arg#add_argid(s:arg_title, s:arg_title_argid)
+let s:arg_title_argid = argonaut#argid#new('--', 'title')
+call argonaut#argid#set_show_in_autocomplete(s:arg_title_argid, 1)
+call argonaut#arg#add_argid(s:arg_title, s:arg_title_argid)
+call argonaut#arg#set_description(s:arg_title,
+    \ 'Task title (required for create).'
+\ )
+call argonaut#arg#set_value_required(s:arg_title, 1)
+call argonaut#arg#set_value_hint(s:arg_title, 'TITLE')
+
+" -D / --description DESC (capital D).
+let s:arg_description = argonaut#arg#new()
+let s:arg_description_argid = argonaut#argid#new('-', 'D')
+call argonaut#argid#set_show_in_autocomplete(s:arg_description_argid, 0)
+call argonaut#arg#add_argid(s:arg_description, s:arg_description_argid)
+let s:arg_description_argid = argonaut#argid#new('--', 'description')
+call argonaut#argid#set_show_in_autocomplete(s:arg_description_argid, 1)
+call argonaut#arg#add_argid(s:arg_description, s:arg_description_argid)
+call argonaut#arg#set_description(s:arg_description,
+    \ 'Task description.'
+\ )
+call argonaut#arg#set_value_required(s:arg_description, 1)
+call argonaut#arg#set_value_hint(s:arg_description, 'DESC')
+
+" -O / --owner OWNER (capital O).
+let s:arg_owner = argonaut#arg#new()
+let s:arg_owner_argid = argonaut#argid#new('-', 'O')
+call argonaut#argid#set_show_in_autocomplete(s:arg_owner_argid, 0)
+call argonaut#arg#add_argid(s:arg_owner, s:arg_owner_argid)
+let s:arg_owner_argid = argonaut#argid#new('--', 'owner')
+call argonaut#argid#set_show_in_autocomplete(s:arg_owner_argid, 1)
+call argonaut#arg#add_argid(s:arg_owner, s:arg_owner_argid)
+call argonaut#arg#set_description(s:arg_owner,
+    \ 'Task owner.'
+\ )
+call argonaut#arg#set_value_required(s:arg_owner, 1)
+call argonaut#arg#set_value_hint(s:arg_owner, 'OWNER')
+
+" -S / --status STATUS (capital S to avoid conflict with -s/--sort).
+let s:arg_status = argonaut#arg#new()
+let s:arg_status_argid = argonaut#argid#new('-', 'S')
+call argonaut#argid#set_show_in_autocomplete(s:arg_status_argid, 0)
+call argonaut#arg#add_argid(s:arg_status, s:arg_status_argid)
+let s:arg_status_argid = argonaut#argid#new('--', 'status')
+call argonaut#argid#set_show_in_autocomplete(s:arg_status_argid, 1)
+call argonaut#arg#add_argid(s:arg_status, s:arg_status_argid)
+call argonaut#arg#set_description(s:arg_status,
+    \ 'Task status (e.g., active, inactive, blocked).'
+\ )
+call argonaut#arg#set_value_required(s:arg_status, 1)
+call argonaut#arg#set_value_hint(s:arg_status, 'STATUS')
+
+" -E / --worktime-estimate NUM
+let s:arg_worktime_estimate = argonaut#arg#new()
+let s:arg_worktime_estimate_argid = argonaut#argid#new('-', 'E')
+call argonaut#argid#set_show_in_autocomplete(s:arg_worktime_estimate_argid, 0)
+call argonaut#arg#add_argid(s:arg_worktime_estimate, s:arg_worktime_estimate_argid)
+let s:arg_worktime_estimate_argid = argonaut#argid#new('--', 'worktime-estimate')
+call argonaut#argid#set_show_in_autocomplete(s:arg_worktime_estimate_argid, 1)
+call argonaut#arg#add_argid(s:arg_worktime_estimate, s:arg_worktime_estimate_argid)
+call argonaut#arg#set_description(s:arg_worktime_estimate,
+    \ 'Estimated work time for the task.'
+\ )
+call argonaut#arg#set_value_required(s:arg_worktime_estimate, 1)
+call argonaut#arg#set_value_hint(s:arg_worktime_estimate, 'NUM')
+
+" -W / --worktime-spent NUM
+let s:arg_worktime_spent = argonaut#arg#new()
+let s:arg_worktime_spent_argid = argonaut#argid#new('-', 'W')
+call argonaut#argid#set_show_in_autocomplete(s:arg_worktime_spent_argid, 0)
+call argonaut#arg#add_argid(s:arg_worktime_spent, s:arg_worktime_spent_argid)
+let s:arg_worktime_spent_argid = argonaut#argid#new('--', 'worktime-spent')
+call argonaut#argid#set_show_in_autocomplete(s:arg_worktime_spent_argid, 1)
+call argonaut#arg#add_argid(s:arg_worktime_spent, s:arg_worktime_spent_argid)
+call argonaut#arg#set_description(s:arg_worktime_spent,
+    \ 'Work time already spent on the task.'
+\ )
+call argonaut#arg#set_value_required(s:arg_worktime_spent, 1)
+call argonaut#arg#set_value_hint(s:arg_worktime_spent, 'NUM')
+
+" -U / --worktime-units UNITS
+let s:arg_worktime_units = argonaut#arg#new()
+let s:arg_worktime_units_argid = argonaut#argid#new('-', 'U')
+call argonaut#argid#set_show_in_autocomplete(s:arg_worktime_units_argid, 0)
+call argonaut#arg#add_argid(s:arg_worktime_units, s:arg_worktime_units_argid)
+let s:arg_worktime_units_argid = argonaut#argid#new('--', 'worktime-units')
+call argonaut#argid#set_show_in_autocomplete(s:arg_worktime_units_argid, 1)
+call argonaut#arg#add_argid(s:arg_worktime_units, s:arg_worktime_units_argid)
+call argonaut#arg#set_description(s:arg_worktime_units,
+    \ 'Units for worktime values (e.g., hours, days).'
+\ )
+call argonaut#arg#set_value_required(s:arg_worktime_units, 1)
+call argonaut#arg#set_value_hint(s:arg_worktime_units, 'UNITS')
+
+" --pid PID (no short form).
+let s:arg_pid = argonaut#arg#new()
+let s:arg_pid_argid = argonaut#argid#new('--', 'pid')
+call argonaut#argid#set_show_in_autocomplete(s:arg_pid_argid, 1)
+call argonaut#arg#add_argid(s:arg_pid, s:arg_pid_argid)
+call argonaut#arg#set_description(s:arg_pid,
+    \ 'Parent task ID.'
+\ )
+call argonaut#arg#set_value_required(s:arg_pid, 1)
+call argonaut#arg#set_value_hint(s:arg_pid, 'PID')
+
+
 " ========================== RagtagQuery Arguments =========================== "
 
 " -t / --tag TAG_NAME
@@ -180,6 +306,37 @@ let s:query_argset = argonaut#argset#new([
     \ s:arg_tag,
 \ ])
 
+" Argset for status-change commands (complete, activate, deactivate, block,
+" abandon) — all share the same structure: id, path, and help.
+let s:task_status_argset = argonaut#argset#new([
+    \ s:arg_help,
+    \ s:arg_path,
+    \ s:arg_id,
+\ ])
+
+" Argset for :RagtagTaskPrioritize — id, priority, path, and help.
+let s:task_prioritize_argset = argonaut#argset#new([
+    \ s:arg_help,
+    \ s:arg_path,
+    \ s:arg_id,
+    \ s:arg_priority,
+\ ])
+
+" Argset for :RagtagTaskCreate — title (required), plus all optional fields.
+let s:task_create_argset = argonaut#argset#new([
+    \ s:arg_help,
+    \ s:arg_path,
+    \ s:arg_title,
+    \ s:arg_description,
+    \ s:arg_owner,
+    \ s:arg_status,
+    \ s:arg_priority,
+    \ s:arg_worktime_estimate,
+    \ s:arg_worktime_spent,
+    \ s:arg_worktime_units,
+    \ s:arg_pid,
+\ ])
+
 
 " ============================== Tab Completion ============================== "
 
@@ -211,6 +368,48 @@ endfunction
 function! ragtag#commands#query_complete(arg, line, pos)
     return argonaut#completion#complete(a:arg, a:line, a:pos,
         \ s:query_argset)
+endfunction
+
+" Tab completion function for :RagtagTaskComplete.
+function! ragtag#commands#task_complete_complete(arg, line, pos)
+    return argonaut#completion#complete(a:arg, a:line, a:pos,
+        \ s:task_status_argset)
+endfunction
+
+" Tab completion function for :RagtagTaskActivate.
+function! ragtag#commands#task_activate_complete(arg, line, pos)
+    return argonaut#completion#complete(a:arg, a:line, a:pos,
+        \ s:task_status_argset)
+endfunction
+
+" Tab completion function for :RagtagTaskDeactivate.
+function! ragtag#commands#task_deactivate_complete(arg, line, pos)
+    return argonaut#completion#complete(a:arg, a:line, a:pos,
+        \ s:task_status_argset)
+endfunction
+
+" Tab completion function for :RagtagTaskBlock.
+function! ragtag#commands#task_block_complete(arg, line, pos)
+    return argonaut#completion#complete(a:arg, a:line, a:pos,
+        \ s:task_status_argset)
+endfunction
+
+" Tab completion function for :RagtagTaskAbandon.
+function! ragtag#commands#task_abandon_complete(arg, line, pos)
+    return argonaut#completion#complete(a:arg, a:line, a:pos,
+        \ s:task_status_argset)
+endfunction
+
+" Tab completion function for :RagtagTaskPrioritize.
+function! ragtag#commands#task_prioritize_complete(arg, line, pos)
+    return argonaut#completion#complete(a:arg, a:line, a:pos,
+        \ s:task_prioritize_argset)
+endfunction
+
+" Tab completion function for :RagtagTaskCreate.
+function! ragtag#commands#task_create_complete(arg, line, pos)
+    return argonaut#completion#complete(a:arg, a:line, a:pos,
+        \ s:task_create_argset)
 endfunction
 
 
@@ -509,6 +708,264 @@ function! ragtag#commands#query(input) abort
 
         call ragtag#utils#print('Found ' . l:match_count .
             \ ' tag(s). Use n/N to navigate.')
+    catch
+        call ragtag#utils#print_error(v:exception)
+    endtry
+endfunction
+
+
+" ========================= Status-Change Helper ============================= "
+
+" Shared implementation for all status-change commands (complete, activate,
+" deactivate, block, abandon). Resolves the task ID from --id or cursor
+" detection, calls the appropriate CLI subcommand, and replaces the tag in the
+" buffer if the ID was cursor-detected.
+"
+" a:input      - raw argument string from the Vim command
+" a:subcommand - CLI subcommand name (e.g., 'complete', 'activate')
+" a:verb       - past-tense verb for the confirmation message (e.g., 'Completed')
+" a:argset     - argset object to use for parsing
+function! s:run_status_command(input, subcommand, verb, argset) abort
+    let l:parser = argonaut#argparser#new(a:argset)
+    try
+        call argonaut#argparser#parse(l:parser, a:input)
+        if argonaut#argparser#has_arg(l:parser, '--help')
+            call ragtag#utils#print('RagtagTask' . a:verb .
+                \ ': Mark task as ' . tolower(a:verb) . '.')
+            call argonaut#argparser#show_help(l:parser)
+            return
+        endif
+
+        " Resolve the target path.
+        let l:path = ragtag#utils#resolve_path(l:parser)
+
+        " Determine the task ID: explicit --id or cursor detection.
+        let l:id = ''
+        let l:location = {}
+        if argonaut#argparser#has_arg(l:parser, '--id')
+            let l:id_values = argonaut#argparser#get_arg(l:parser, '--id')
+            if len(l:id_values) > 0
+                let l:id = l:id_values[0]
+            endif
+        endif
+        if empty(l:id)
+            let l:location = ragtag#tag#find_tag_at_cursor()
+            let l:id = l:location.id
+            if empty(l:id)
+                call ragtag#utils#panic('No task ID found at cursor. Use --id to specify explicitly.')
+            endif
+        endif
+
+        " Call the CLI to change the task status.
+        let l:output = ragtag#utils#exec(['task', a:subcommand, l:id,
+            \ '--no-edit', '--path', l:path])
+
+        " If we detected the tag from the cursor, replace it in the buffer.
+        if !empty(l:location)
+            call ragtag#tag#replace_tag_in_buffer(l:location, l:output)
+        endif
+
+        call ragtag#utils#print(a:verb . ' task ' . strpart(l:id, 0, 8))
+    catch
+        call ragtag#utils#print_error(v:exception)
+    endtry
+endfunction
+
+
+" ---- RagtagTaskComplete ---------------------------------------------------- "
+" Marks a task as done. The task can be identified by explicit --id or by
+" placing the cursor on a @task(...) tag in the current buffer.
+function! ragtag#commands#task_complete(input) abort
+    call s:run_status_command(a:input, 'complete', 'Completed',
+        \ s:task_status_argset)
+endfunction
+
+
+" ---- RagtagTaskActivate ---------------------------------------------------- "
+" Sets a task's status to active. The task can be identified by explicit --id
+" or by cursor detection.
+function! ragtag#commands#task_activate(input) abort
+    call s:run_status_command(a:input, 'activate', 'Activated',
+        \ s:task_status_argset)
+endfunction
+
+
+" ---- RagtagTaskDeactivate -------------------------------------------------- "
+" Sets a task's status to inactive. The task can be identified by explicit
+" --id or by cursor detection.
+function! ragtag#commands#task_deactivate(input) abort
+    call s:run_status_command(a:input, 'deactivate', 'Deactivated',
+        \ s:task_status_argset)
+endfunction
+
+
+" ---- RagtagTaskBlock ------------------------------------------------------- "
+" Sets a task's status to blocked. The task can be identified by explicit --id
+" or by cursor detection.
+function! ragtag#commands#task_block(input) abort
+    call s:run_status_command(a:input, 'block', 'Blocked',
+        \ s:task_status_argset)
+endfunction
+
+
+" ---- RagtagTaskAbandon ----------------------------------------------------- "
+" Sets a task's status to abandoned. The task can be identified by explicit
+" --id or by cursor detection.
+function! ragtag#commands#task_abandon(input) abort
+    call s:run_status_command(a:input, 'abandon', 'Abandoned',
+        \ s:task_status_argset)
+endfunction
+
+
+" ---- RagtagTaskPrioritize -------------------------------------------------- "
+" Sets a task's priority value. The task can be identified by explicit --id or
+" by placing the cursor on a @task(...) tag in the current buffer.
+function! ragtag#commands#task_prioritize(input) abort
+    let l:parser = argonaut#argparser#new(s:task_prioritize_argset)
+    try
+        call argonaut#argparser#parse(l:parser, a:input)
+        if argonaut#argparser#has_arg(l:parser, '--help')
+            call ragtag#utils#print('RagtagTaskPrioritize: Set a task priority.')
+            call argonaut#argparser#show_help(l:parser)
+            return
+        endif
+
+        " Resolve the target path.
+        let l:path = ragtag#utils#resolve_path(l:parser)
+
+        " Get the priority value (required).
+        if !argonaut#argparser#has_arg(l:parser, '--priority')
+            call ragtag#utils#panic('--priority is required. Specify the new priority value.')
+        endif
+        let l:priority_values = argonaut#argparser#get_arg(l:parser, '--priority')
+        let l:priority = l:priority_values[0]
+
+        " Determine the task ID: explicit --id or cursor detection.
+        let l:id = ''
+        let l:location = {}
+        if argonaut#argparser#has_arg(l:parser, '--id')
+            let l:id_values = argonaut#argparser#get_arg(l:parser, '--id')
+            if len(l:id_values) > 0
+                let l:id = l:id_values[0]
+            endif
+        endif
+        if empty(l:id)
+            let l:location = ragtag#tag#find_tag_at_cursor()
+            let l:id = l:location.id
+            if empty(l:id)
+                call ragtag#utils#panic('No task ID found at cursor. Use --id to specify explicitly.')
+            endif
+        endif
+
+        " Call the CLI to set the priority. Note: CLI takes priority BEFORE ID.
+        let l:output = ragtag#utils#exec(['task', 'prioritize', l:priority,
+            \ l:id, '--no-edit', '--path', l:path])
+
+        " If we detected the tag from the cursor, replace it in the buffer.
+        if !empty(l:location)
+            call ragtag#tag#replace_tag_in_buffer(l:location, l:output)
+        endif
+
+        call ragtag#utils#print('Prioritized task ' . strpart(l:id, 0, 8) .
+            \ ' (priority → ' . l:priority . ')')
+    catch
+        call ragtag#utils#print_error(v:exception)
+    endtry
+endfunction
+
+
+" ---- RagtagTaskCreate ------------------------------------------------------ "
+" Creates a new task via CLI arguments (non-interactive) using --format oneline
+" and inserts the resulting @task(...) tag after the current cursor line.
+function! ragtag#commands#task_create(input) abort
+    let l:parser = argonaut#argparser#new(s:task_create_argset)
+    try
+        call argonaut#argparser#parse(l:parser, a:input)
+        if argonaut#argparser#has_arg(l:parser, '--help')
+            call ragtag#utils#print('RagtagTaskCreate: Create a new task.')
+            call argonaut#argparser#show_help(l:parser)
+            return
+        endif
+
+        " Resolve the target path.
+        let l:path = ragtag#utils#resolve_path(l:parser)
+
+        " Get the title (required).
+        if !argonaut#argparser#has_arg(l:parser, '--title')
+            call ragtag#utils#panic('--title is required. Specify the task title.')
+        endif
+        let l:title_values = argonaut#argparser#get_arg(l:parser, '--title')
+        let l:title = l:title_values[0]
+
+        " Build the CLI command.
+        let l:args = ['task', 'create', '--format', 'oneline',
+            \ '--title', l:title, '--path', l:path]
+
+        " Append optional arguments if provided.
+        if argonaut#argparser#has_arg(l:parser, '--description')
+            let l:vals = argonaut#argparser#get_arg(l:parser, '--description')
+            if len(l:vals) > 0
+                let l:args += ['--description', l:vals[0]]
+            endif
+        endif
+
+        if argonaut#argparser#has_arg(l:parser, '--owner')
+            let l:vals = argonaut#argparser#get_arg(l:parser, '--owner')
+            if len(l:vals) > 0
+                let l:args += ['--owner', l:vals[0]]
+            endif
+        endif
+
+        if argonaut#argparser#has_arg(l:parser, '--status')
+            let l:vals = argonaut#argparser#get_arg(l:parser, '--status')
+            if len(l:vals) > 0
+                let l:args += ['--status', l:vals[0]]
+            endif
+        endif
+
+        if argonaut#argparser#has_arg(l:parser, '--priority')
+            let l:vals = argonaut#argparser#get_arg(l:parser, '--priority')
+            if len(l:vals) > 0
+                let l:args += ['--priority', l:vals[0]]
+            endif
+        endif
+
+        if argonaut#argparser#has_arg(l:parser, '--worktime-estimate')
+            let l:vals = argonaut#argparser#get_arg(l:parser, '--worktime-estimate')
+            if len(l:vals) > 0
+                let l:args += ['--worktime-estimate', l:vals[0]]
+            endif
+        endif
+
+        if argonaut#argparser#has_arg(l:parser, '--worktime-spent')
+            let l:vals = argonaut#argparser#get_arg(l:parser, '--worktime-spent')
+            if len(l:vals) > 0
+                let l:args += ['--worktime-spent', l:vals[0]]
+            endif
+        endif
+
+        if argonaut#argparser#has_arg(l:parser, '--worktime-units')
+            let l:vals = argonaut#argparser#get_arg(l:parser, '--worktime-units')
+            if len(l:vals) > 0
+                let l:args += ['--worktime-units', l:vals[0]]
+            endif
+        endif
+
+        if argonaut#argparser#has_arg(l:parser, '--pid')
+            let l:vals = argonaut#argparser#get_arg(l:parser, '--pid')
+            if len(l:vals) > 0
+                let l:args += ['--pid', l:vals[0]]
+            endif
+        endif
+
+        " Execute the CLI command and capture the @task(...) output.
+        let l:output = ragtag#utils#exec(l:args)
+        let l:result = substitute(l:output, '\n$', '', '')
+
+        " Insert the tag after the current cursor line.
+        call append(line('.'), l:result)
+
+        call ragtag#utils#print('Created task: ' . l:result)
     catch
         call ragtag#utils#print_error(v:exception)
     endtry

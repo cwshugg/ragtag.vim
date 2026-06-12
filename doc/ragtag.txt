@@ -137,6 +137,127 @@ arguments.
         :Rq
 <
 
+                                                        *:RagtagTaskComplete*
+:RagtagTaskComplete [args]                                            *:Rtco*
+    Mark a task as done (status → complete). The task can be identified by
+    explicit --id or by placing the cursor on a `@task(...)` tag.
+
+    Arguments:
+        --id, -i ID         Task ID (overrides cursor detection)
+        --path, -p PATH     File or directory to search
+        --help, -h          Show help menu
+
+    Example:
+>
+        :RagtagTaskComplete
+        :Rtco --id abc123ef
+<
+
+                                                        *:RagtagTaskActivate*
+:RagtagTaskActivate [args]                                             *:Rta*
+    Set a task's status to active. The task can be identified by explicit
+    --id or by cursor detection.
+
+    Arguments:
+        --id, -i ID         Task ID (overrides cursor detection)
+        --path, -p PATH     File or directory to search
+        --help, -h          Show help menu
+
+    Example:
+>
+        :RagtagTaskActivate
+        :Rta --id abc123ef
+<
+
+                                                      *:RagtagTaskDeactivate*
+:RagtagTaskDeactivate [args]                                           *:Rtd*
+    Set a task's status to inactive. The task can be identified by explicit
+    --id or by cursor detection.
+
+    Arguments:
+        --id, -i ID         Task ID (overrides cursor detection)
+        --path, -p PATH     File or directory to search
+        --help, -h          Show help menu
+
+    Example:
+>
+        :RagtagTaskDeactivate
+        :Rtd --id abc123ef
+<
+
+                                                           *:RagtagTaskBlock*
+:RagtagTaskBlock [args]                                                *:Rtb*
+    Set a task's status to blocked. The task can be identified by explicit
+    --id or by cursor detection.
+
+    Arguments:
+        --id, -i ID         Task ID (overrides cursor detection)
+        --path, -p PATH     File or directory to search
+        --help, -h          Show help menu
+
+    Example:
+>
+        :RagtagTaskBlock
+        :Rtb --id abc123ef
+<
+
+                                                          *:RagtagTaskAbandon*
+:RagtagTaskAbandon [args]                                             *:Rtab*
+    Set a task's status to abandoned. The task can be identified by explicit
+    --id or by cursor detection.
+
+    Arguments:
+        --id, -i ID         Task ID (overrides cursor detection)
+        --path, -p PATH     File or directory to search
+        --help, -h          Show help menu
+
+    Example:
+>
+        :RagtagTaskAbandon
+        :Rtab --id abc123ef
+<
+
+                                                      *:RagtagTaskPrioritize*
+:RagtagTaskPrioritize [args]                                           *:Rtp*
+    Set a task's priority value. The task can be identified by explicit --id
+    or by placing the cursor on a `@task(...)` tag.
+
+    Arguments:
+        --priority, -P NUM  New priority value (required)
+        --id, -i ID         Task ID (overrides cursor detection)
+        --path, -p PATH     File or directory to search
+        --help, -h          Show help menu
+
+    Example:
+>
+        :RagtagTaskPrioritize --priority 1
+        :Rtp -P 2 --id abc123ef
+<
+
+                                                         *:RagtagTaskCreate*
+:RagtagTaskCreate [args]                                              *:Rtcr*
+    Create a new task via CLI arguments (non-interactive). The resulting
+    `@task(...)` tag is inserted after the current cursor line.
+
+    Arguments:
+        --title, -T TITLE           Task title (required)
+        --description, -D DESC      Task description
+        --owner, -O OWNER           Task owner
+        --status, -S STATUS         Initial status (e.g., active, inactive)
+        --priority, -P NUM          Initial priority value
+        --worktime-estimate, -E NUM Estimated work time
+        --worktime-spent, -W NUM    Work time already spent
+        --worktime-units, -U UNITS  Units for worktime values (e.g., hours)
+        --pid PID                   Parent task ID
+        --path, -p PATH             File or directory path
+        --help, -h                  Show help menu
+
+    Example:
+>
+        :RagtagTaskCreate --title "Fix login bug" --owner alice --priority 1
+        :Rtcr -T "Refactor auth" -S active -P 2
+<
+
 ==============================================================================
 4. CONFIGURATION                                              *ragtag-config*
 
