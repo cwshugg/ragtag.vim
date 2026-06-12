@@ -767,9 +767,11 @@ function! ragtag#commands#query(input) abort
         call matchadd('RagtagAttrEquals', '\w\zs=\ze[^=]', -1)
         call matchadd('RagtagAttrValue', '=\zs[^,)]*\ze', -1)
 
-        " Jump to the first match so the user starts on a tag.
-        normal! gg
-        silent! execute 'normal! n'
+        " Jump to the first match so the user starts on a tag. Using
+        " search() with the 'w' flag wraps from the top and triggers
+        " hlsearch immediately (unlike normal! n which defers redraw).
+        call cursor(1, 1)
+        call search(@/, 'w')
 
         call ragtag#utils#print('Found ' . l:match_count . ' tag(s).')
     catch
